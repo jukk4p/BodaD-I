@@ -102,7 +102,12 @@
     letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-text);
     margin-bottom: 1rem;
   }
-  .letter-crest { width: 62px; height: 62px; margin-bottom: 0.8rem; }
+  .letter-crest {
+    width: 62px; height: 62px;
+    object-fit: cover; border-radius: 50%;
+    margin-bottom: 0.8rem;
+    box-shadow: 0 6px 16px rgba(31,51,71,0.2), 0 0 0 1px rgba(180,134,76,0.35);
+  }
   .envelope-flap {
     position: absolute; top: 0; left: 0; width: 100%; height: 108px;
     background: linear-gradient(155deg, #ece7da 0%, #ddd4bf 100%);
@@ -114,7 +119,11 @@
     display: flex; align-items: flex-start; justify-content: center; padding-top: 1rem;
     transition: transform 1.9s cubic-bezier(.6,0,.2,1), opacity 0.9s ease 1.4s;
   }
-  .envelope-seal { width: 38px; height: 38px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
+  .envelope-seal {
+    width: 38px; height: 38px;
+    object-fit: cover; border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2), 0 0 0 1px rgba(180,134,76,0.35);
+  }
   .envelope-label {
     position: absolute; left: 0; right: 0; top: 132px;
     text-align: center; z-index: 1;
@@ -608,22 +617,6 @@
 </head>
 <body>
 
-<!-- ══ MONOGRAMA VECTORIAL REUTILIZABLE ══ -->
-<svg style="position:absolute; width:0; height:0; overflow:hidden;" aria-hidden="true">
-  <symbol id="crest" viewBox="0 0 200 200">
-    <circle cx="100" cy="100" r="94" fill="none" stroke="#b4864c" stroke-width="1.5"/>
-    <circle cx="100" cy="100" r="86" fill="none" stroke="#b4864c" stroke-width="0.6" opacity="0.5"/>
-    <ellipse cx="100" cy="11" rx="11" ry="5.5" fill="#9db3c9" opacity="0.7"/>
-    <ellipse cx="100" cy="189" rx="11" ry="5.5" fill="#9db3c9" opacity="0.7"/>
-    <circle cx="100" cy="11" r="2" fill="#8a6636" opacity="0.8"/>
-    <circle cx="100" cy="189" r="2" fill="#8a6636" opacity="0.8"/>
-    <text x="52" y="122" text-anchor="middle" font-family="'Fraunces', serif" font-style="italic" font-weight="500" font-size="72" fill="#2f4a63">D</text>
-    <text x="100" y="116" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-style="italic" font-size="44" fill="#b4864c">&amp;</text>
-    <text x="149" y="122" text-anchor="middle" font-family="'Fraunces', serif" font-style="italic" font-weight="500" font-size="72" fill="#2f4a63">I</text>
-    <path d="M50 148 Q100 162 150 148" stroke="#b4864c" stroke-width="0.8" fill="none" opacity="0.6"/>
-  </symbol>
-</svg>
-
 <!-- ══ APERTURA: la carta sale del sobre ══ -->
 <div class="gate" id="gate" onclick="openInvitation()">
   <div class="envelope">
@@ -633,12 +626,12 @@
     </div>
     <div class="envelope-content">
       <p class="gate-kicker">Bienvenidos a Nuestra Boda</p>
-      <svg class="letter-crest" viewBox="0 0 200 200"><use href="#crest"/></svg>
+      <img class="letter-crest" src="img/monogram.png" alt="" aria-hidden="true">
       <p class="gate-names">Daniel <span class="gate-amp">&amp;</span> Irene</p>
       <p class="gate-date">Boda · Sábado 24 de Octubre de 2026</p>
     </div>
     <div class="envelope-flap">
-      <svg class="envelope-seal" viewBox="0 0 200 200"><use href="#crest"/></svg>
+      <img class="envelope-seal" src="img/monogram.png" alt="" aria-hidden="true">
     </div>
     <p class="envelope-label">Boda Daniel &amp; Irene</p>
   </div>
