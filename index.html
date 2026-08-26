@@ -224,9 +224,9 @@
   /* ── HERO ─────────────────────────────────────────── */
   .hero {
     position: relative;
-    min-height: 100svh;
+    min-height: 66svh;
     display: flex; flex-direction: column; justify-content: center;
-    padding: 6rem 2rem 4rem;
+    padding: 5.5rem 2rem 2.6rem;
     overflow: hidden;
     background: var(--paper);
   }
@@ -404,14 +404,29 @@
   .detail-row .val {
     font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--ink-deep);
   }
-  .venue-photo {
+  .venue-carousel {
     margin-top: 1.8rem;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+  .venue-track {
+    display: flex;
+    width: max-content;
+    animation: venueScroll 26s linear infinite;
+  }
+  .venue-carousel:hover .venue-track { animation-play-state: paused; }
+  .venue-slide {
+    flex: 0 0 auto;
+    width: 220px;
+    margin-right: 10px;
+    cursor: pointer;
     border-radius: 14px;
     overflow: hidden;
-    cursor: pointer;
     box-shadow: 0 10px 24px rgba(31, 51, 71, 0.12);
   }
-  .venue-photo img { width: 100%; height: auto; display: block; }
+  .venue-slide img { width: 100%; height: 150px; object-fit: cover; display: block; }
+  @keyframes venueScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .venue-track { animation: none; } }
 
   /* ── SCHEDULE ─────────────────────────────────────── */
   .schedule { margin-top: 1.8rem; }
@@ -485,12 +500,6 @@
     position: absolute; top: 1rem; right: 1.2rem;
     background: none; border: none; font-size: 1rem; color: var(--ink);
     cursor: pointer;
-  }
-  .iban-code {
-    font-family: 'Archivo', sans-serif; font-weight: 600;
-    letter-spacing: 0.06em;
-    font-size: 1.05rem; color: var(--ink-deep);
-    margin: 1.1rem 0; word-break: break-all;
   }
   #lightbox-img { width: 100%; display: block; border-radius: 12px; }
 
@@ -675,10 +684,18 @@
       <div class="detail-row"><span class="lbl">Hora</span><span class="val">12:00 h</span></div>
       <div class="detail-row"><span class="lbl">Lugar</span><span class="val">Hacienda Domitila</span></div>
     </div>
-    <div class="venue-photo" onclick="openLightbox('img/hacienda-1.jpg')">
-      <img src="img/hacienda-1.jpg" alt="Entrada de Hacienda Domitila, La Puebla del Río">
+    <div class="venue-carousel">
+      <div class="venue-track">
+        <div class="venue-slide" onclick="openLightbox('img/hacienda-1.jpg')"><img src="img/hacienda-1.jpg" alt="Entrada de Hacienda Domitila"></div>
+        <div class="venue-slide" onclick="openLightbox('img/hacienda-2.jpg')"><img src="img/hacienda-2.jpg" alt="Ceremonia al aire libre en Hacienda Domitila"></div>
+        <div class="venue-slide" onclick="openLightbox('img/hacienda-3.jpg')"><img src="img/hacienda-3.jpg" alt="Acceso de Hacienda Domitila"></div>
+        <div class="venue-slide" onclick="openLightbox('img/hacienda-4.jpg')"><img src="img/hacienda-4.jpg" alt="Porche cubierto de Hacienda Domitila"></div>
+        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-1.jpg" alt=""></div>
+        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-2.jpg" alt=""></div>
+        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-3.jpg" alt=""></div>
+        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-4.jpg" alt=""></div>
+      </div>
     </div>
-    <!-- TODO: cuando haya más fotos del lugar, añadirlas aquí -->
     <a class="btn-line" href="https://maps.google.com/?q=Hacienda+Domitila+La+Puebla+del+R%C3%ADo+Sevilla" target="_blank">Cómo llegar</a>
   </div>
 
@@ -798,8 +815,7 @@
     <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M4 9h16v4H4z"/><path d="M12 9v11M12 9c-1.5-3-5-3-5-.5S9 9 12 9zm0 0c1.5-3 5-3 5-.5S15 9 12 9z"/></svg></div>
     <p class="eyebrow">Vuestra Presencia</p>
     <h2 class="section-title">Es Nuestro Mejor Regalo</h2>
-    <p class="section-body">Pero si queréis tener un pequeño detalle con nosotros, aquí podéis consultar nuestros datos de cuenta.</p>
-    <button class="btn-line" onclick="openModal('iban-modal')">Ver datos de cuenta</button>
+    <p class="section-body">Lo único que necesitamos es compartir este día con vosotros.</p>
   </div>
 
   <!-- PEQUES -->
@@ -909,18 +925,6 @@
 
 </div>
 
-<!-- MODAL IBAN -->
-<!-- TODO: sustituir por el IBAN real de Daniel e Irene -->
-<div class="modal-overlay" id="iban-modal">
-  <div class="modal-card">
-    <button class="modal-close" onclick="closeModal('iban-modal')">✕</button>
-    <p class="eyebrow">Datos Bancarios</p>
-    <h2 class="section-title" style="font-size:1.3rem;">Daniel &amp; Irene</h2>
-    <div class="iban-code" id="iban-text">IBAN00 0000 0000 0000 0000 0000</div>
-    <button class="btn-line" onclick="copyIBAN()">Copiar IBAN</button>
-  </div>
-</div>
-
 <!-- MODAL LIGHTBOX -->
 <div class="modal-overlay" id="lightbox-modal" onclick="closeModal('lightbox-modal')">
   <div class="modal-card" style="padding:0.5rem; max-width:440px; box-shadow:none; background:transparent;" onclick="event.stopPropagation()">
@@ -1004,12 +1008,6 @@ END:VCALENDAR`;
   // ── MODALES ──────────────────────────────────────────
   function openModal(id) { document.getElementById(id).classList.add('active'); }
   function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-  function copyIBAN() {
-    const text = document.getElementById('iban-text').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      alert('IBAN copiado');
-    });
-  }
   function openLightbox(src) {
     document.getElementById('lightbox-img').src = src;
     openModal('lightbox-modal');
