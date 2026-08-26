@@ -74,31 +74,34 @@
   .gate.closed { pointer-events: none; visibility: hidden; transition: visibility 0s 1.15s; }
 
   .gate-inner { width: 100vw; max-width: 560px; text-align: center; padding: 0 2rem; }
-  .gate-mono { width: 168px; height: 168px; margin: 0 auto 1.2rem; overflow: visible; }
-  .gate-mono .g-circle { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: gateDraw 1.8s ease-out forwards; }
-  .gate-mono .g-branch { stroke-dasharray: 260; stroke-dashoffset: 260; animation: gateDraw 1.1s ease-out 0.35s forwards; }
-  .gate-mono .g-leaf { opacity: 0; animation: gateFade 0.6s ease-out forwards; }
-  .gate-mono .g-leaf:nth-of-type(3) { animation-delay: 0.9s; }
-  .gate-mono .g-leaf:nth-of-type(4) { animation-delay: 1.0s; }
-  .gate-mono .g-leaf:nth-of-type(5) { animation-delay: 1.1s; }
-  .gate-mono .g-leaf:nth-of-type(6) { animation-delay: 1.2s; }
-  .gate-mono .g-leaf:nth-of-type(7) { animation-delay: 1.3s; }
-  .gate-mono .g-leaf:nth-of-type(8) { animation-delay: 1.4s; }
-  .gate-mono .g-letters { opacity: 0; animation: gateFade 0.8s ease-out 1.5s forwards; }
-  @keyframes gateDraw { to { stroke-dashoffset: 0; } }
-  @keyframes gateFade { to { opacity: 1; } }
+  .gate-kicker {
+    font-family: 'Archivo', sans-serif; font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold-soft);
+    margin-bottom: 1.1rem;
+    opacity: 0; animation: gateUp 0.7s ease-out 0.1s forwards;
+  }
+  .gate-medallion {
+    width: 200px; height: 200px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin: 0 auto 1.3rem;
+    box-shadow: 0 18px 44px rgba(0,0,0,0.4), 0 0 0 1px rgba(217, 185, 138, 0.35);
+    opacity: 0; transform: scale(0.86);
+    animation: gateMedallion 1.3s cubic-bezier(.2,.8,.2,1) 0.15s forwards;
+  }
+  @keyframes gateMedallion { to { opacity: 1; transform: scale(1); } }
 
   .gate-names {
     font-family: 'Fraunces', serif; font-style: italic;
     font-size: 1.9rem; color: #f2f0e9;
-    opacity: 0; animation: gateUp 0.8s ease-out 1.9s forwards;
+    opacity: 0; animation: gateUp 0.8s ease-out 1.15s forwards;
   }
   .gate-amp { color: #b7c9db; }
   .gate-date {
     margin-top: 0.7rem;
     font-family: 'Archivo', sans-serif; font-size: 0.66rem;
     letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-soft);
-    opacity: 0; animation: gateUp 0.8s ease-out 2.15s forwards;
+    opacity: 0; animation: gateUp 0.8s ease-out 1.4s forwards;
   }
   @keyframes gateUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -112,13 +115,12 @@
     letter-spacing: 0.2em; text-transform: uppercase;
     color: var(--gold-soft);
     opacity: 0; pointer-events: none;
-    animation: gateUp 0.8s ease-out 2.4s forwards, gatePulse 2.2s ease-in-out 3.2s infinite;
+    animation: gateUp 0.8s ease-out 1.65s forwards, gatePulse 2.2s ease-in-out 2.45s infinite;
   }
   @keyframes gatePulse { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
-    .gate-mono .g-circle, .gate-mono .g-branch, .gate-mono .g-leaf, .gate-mono .g-letters,
-    .gate-names, .gate-date, .gate-tap {
-      animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important;
+    .gate-kicker, .gate-medallion, .gate-names, .gate-date, .gate-tap {
+      animation: none !important; opacity: 1 !important; transform: none !important;
     }
     .gate-panel { transition: none; }
     .gate.closed { transition: none; }
@@ -198,9 +200,9 @@
   .hero-mono {
     position: absolute;
     top: 46%; left: 50%;
-    width: 96vw; max-width: 560px;
+    width: 82vw; max-width: 460px;
     transform: translate(-50%, -50%);
-    opacity: 0.34;
+    opacity: 0.18;
     pointer-events: none;
     z-index: 0;
     transition: transform 0.1s linear;
@@ -458,46 +460,18 @@
 <div class="gate" id="gate" onclick="openInvitation()">
   <div class="gate-panel gate-panel-l">
     <div class="gate-inner">
-      <svg class="gate-mono" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle class="g-circle" cx="250" cy="250" r="185" fill="none" stroke="#d9b98a" stroke-width="1.1" opacity="0.6"/>
-        <path class="g-branch" d="M 250 65 C 335 65 415 125 435 210" fill="none" stroke="#9db3c9" stroke-width="1.2" opacity="0.55"/>
-        <path class="g-branch" d="M 250 435 C 165 435 85 375 65 290" fill="none" stroke="#9db3c9" stroke-width="1.2" opacity="0.55"/>
-        <ellipse class="g-leaf" cx="325" cy="78" rx="12" ry="6" transform="rotate(-20 325 78)" fill="#9db3c9" opacity="0.7"/>
-        <ellipse class="g-leaf" cx="365" cy="105" rx="13" ry="6" transform="rotate(20 365 105)" fill="#d9b98a" opacity="0.65"/>
-        <ellipse class="g-leaf" cx="402" cy="145" rx="12" ry="6" transform="rotate(45 402 145)" fill="#9db3c9" opacity="0.7"/>
-        <ellipse class="g-leaf" cx="175" cy="422" rx="12" ry="6" transform="rotate(-20 175 422)" fill="#9db3c9" opacity="0.7"/>
-        <ellipse class="g-leaf" cx="135" cy="395" rx="13" ry="6" transform="rotate(20 135 395)" fill="#d9b98a" opacity="0.65"/>
-        <ellipse class="g-leaf" cx="98" cy="355" rx="12" ry="6" transform="rotate(45 98 355)" fill="#9db3c9" opacity="0.7"/>
-        <g class="g-letters" text-anchor="middle">
-          <text x="172" y="282" font-size="165" font-family="'Alex Brush', cursive" fill="#d9b98a">D</text>
-          <text x="250" y="260" font-size="65" font-family="'Cormorant Garamond', serif" font-style="italic" fill="#b7c9db">&amp;</text>
-          <text x="328" y="282" font-size="165" font-family="'Alex Brush', cursive" fill="#d9b98a">I</text>
-        </g>
-      </svg>
+      <p class="gate-kicker">Nos Casamos</p>
+      <img class="gate-medallion" src="img/monogram.png" alt="" aria-hidden="true">
       <p class="gate-names">Daniel <span class="gate-amp">&amp;</span> Irene</p>
-      <p class="gate-date">Sábado 24 de Octubre de 2026</p>
+      <p class="gate-date">Boda · Sábado 24 de Octubre de 2026</p>
     </div>
   </div>
   <div class="gate-panel gate-panel-r">
     <div class="gate-inner">
-      <svg class="gate-mono" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle class="g-circle" cx="250" cy="250" r="185" fill="none" stroke="#d9b98a" stroke-width="1.1" opacity="0.6"/>
-        <path class="g-branch" d="M 250 65 C 335 65 415 125 435 210" fill="none" stroke="#9db3c9" stroke-width="1.2" opacity="0.55"/>
-        <path class="g-branch" d="M 250 435 C 165 435 85 375 65 290" fill="none" stroke="#9db3c9" stroke-width="1.2" opacity="0.55"/>
-        <ellipse class="g-leaf" cx="325" cy="78" rx="12" ry="6" transform="rotate(-20 325 78)" fill="#9db3c9" opacity="0.7"/>
-        <ellipse class="g-leaf" cx="365" cy="105" rx="13" ry="6" transform="rotate(20 365 105)" fill="#d9b98a" opacity="0.65"/>
-        <ellipse class="g-leaf" cx="402" cy="145" rx="12" ry="6" transform="rotate(45 402 145)" fill="#9db3c9" opacity="0.7"/>
-        <ellipse class="g-leaf" cx="175" cy="422" rx="12" ry="6" transform="rotate(-20 175 422)" fill="#9db3c9" opacity="0.7"/>
-        <ellipse class="g-leaf" cx="135" cy="395" rx="13" ry="6" transform="rotate(20 135 395)" fill="#d9b98a" opacity="0.65"/>
-        <ellipse class="g-leaf" cx="98" cy="355" rx="12" ry="6" transform="rotate(45 98 355)" fill="#9db3c9" opacity="0.7"/>
-        <g class="g-letters" text-anchor="middle">
-          <text x="172" y="282" font-size="165" font-family="'Alex Brush', cursive" fill="#d9b98a">D</text>
-          <text x="250" y="260" font-size="65" font-family="'Cormorant Garamond', serif" font-style="italic" fill="#b7c9db">&amp;</text>
-          <text x="328" y="282" font-size="165" font-family="'Alex Brush', cursive" fill="#d9b98a">I</text>
-        </g>
-      </svg>
+      <p class="gate-kicker">Nos Casamos</p>
+      <img class="gate-medallion" src="img/monogram.png" alt="" aria-hidden="true">
       <p class="gate-names">Daniel <span class="gate-amp">&amp;</span> Irene</p>
-      <p class="gate-date">Sábado 24 de Octubre de 2026</p>
+      <p class="gate-date">Boda · Sábado 24 de Octubre de 2026</p>
     </div>
   </div>
   <p class="gate-tap">Toca para abrir</p>
@@ -527,7 +501,7 @@
 
   <!-- HERO -->
   <div class="hero" id="inicio">
-    <img class="hero-mono" id="hero-mono" src="img/monogram.svg" alt="" aria-hidden="true">
+    <img class="hero-mono" id="hero-mono" src="img/monogram.png" alt="" aria-hidden="true">
     <div class="hero-inner">
       <p class="eyebrow">Una Boda</p>
       <h1 class="hero-names">Daniel <span class="hero-amp">&amp;</span><br>Irene</h1>
