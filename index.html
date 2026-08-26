@@ -49,8 +49,6 @@
     border: none;
     margin: 1.1rem 0;
   }
-  .section.align-right .rule { margin-left: auto; }
-  .section.align-center .rule,
   .hero-inner .rule { margin-left: auto; margin-right: auto; }
 
   .app {
@@ -319,50 +317,58 @@
     mask-image: radial-gradient(circle at 100% 100%, black 18%, transparent 62%);
   }
 
-  /* ── SECTIONS (tarjetas) ──────────────────────────── */
-  .section {
+  /* ── SECTIONS (tarjetas, estructura de Gloria&José en la paleta actual) ── */
+  .section-wrap { padding: 1.2rem 1rem; }
+  .card-premium {
     position: relative;
     overflow: hidden;
-    margin: 1.3rem 1rem;
-    padding: 2.5rem 1.7rem;
     background: var(--paper);
-    border-radius: 22px;
-    border: 1px solid var(--mist);
+    border-radius: 24px;
+    padding: 2.4rem 1.7rem;
+    border: 1px solid rgba(180, 134, 76, 0.25);
     box-shadow: 0 16px 36px rgba(31, 51, 71, 0.09);
+    text-align: center;
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
   }
-  .section > *:not(.card-floral) { position: relative; z-index: 1; }
-  .section.align-right { text-align: right; }
-  .section.align-center { text-align: center; }
+  .card-premium:hover { transform: translateY(-2px); box-shadow: 0 22px 48px rgba(31, 51, 71, 0.15); }
+  .card-premium > *:not(.card-floral) { position: relative; z-index: 1; }
+
+  .section-header { margin-bottom: 1.6rem; }
   .section-icon {
     width: 42px; height: 42px;
     display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.6rem;
     border: 1px solid var(--mist);
     border-radius: 50%;
     color: var(--gold-text);
-    margin-bottom: 1.1rem;
     background: var(--paper);
   }
-  .section.align-right .section-icon { margin-left: auto; }
-  .section.align-center .section-icon { margin-left: auto; margin-right: auto; }
+  .section-tag {
+    font-family: 'Archivo', sans-serif; font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-text);
+    margin-bottom: 0.3rem;
+  }
   .section-title {
     font-family: 'Fraunces', serif;
     font-weight: 500;
-    font-size: 2.05rem;
+    font-size: 1.9rem;
     color: var(--ink-deep);
-    margin-top: 0.4rem;
   }
+  .divider-gold {
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    margin: 0.7rem auto 0; max-width: 140px;
+  }
+  .divider-gold .line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .divider-gold .icon { color: var(--gold); font-size: 0.75rem; }
+
   .section-body {
-    margin-top: 1.2rem;
+    margin: 0 auto;
     font-size: 1.02rem;
     color: var(--charcoal);
     max-width: 42ch;
   }
-  .section.align-right .section-body { margin-left: auto; }
-  .section.align-center .section-body { margin-left: auto; margin-right: auto; }
 
-  .tag-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.3rem; }
-  .section.align-right .tag-row { justify-content: flex-end; }
-  .section.align-center .tag-row { justify-content: center; }
+  .tag-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1.3rem; }
   .tag {
     font-family: 'Archivo', sans-serif; font-size: 0.62rem; font-weight: 600;
     letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
@@ -414,26 +420,27 @@
     border-bottom: 1px solid var(--gold);
     text-decoration: none;
   }
-  .section.align-center .btn-line { margin-left: auto; margin-right: auto; }
 
   /* ── DETAILS (El Gran Día) ────────────────────────── */
   .details {
-    margin-top: 1.8rem;
     display: grid;
-    gap: 0.9rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.8rem;
+    margin: 1.4rem 0;
   }
-  .detail-row {
-    display: flex; justify-content: space-between; align-items: baseline;
-    padding-bottom: 0.7rem;
-    border-bottom: 1px solid var(--mist);
+  .detail-item { padding: 0.6rem 0.2rem; }
+  .detail-icon {
+    display: flex; justify-content: center;
+    color: var(--gold-text);
+    margin-bottom: 0.4rem;
   }
-  .detail-row .lbl {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    font-size: 0.66rem; font-weight: 600; letter-spacing: 0.16em;
+  .detail-title {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--ink-soft);
   }
-  .detail-row .val {
-    font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--ink-deep);
+  .detail-text {
+    font-family: 'Fraunces', serif; font-size: 0.85rem; font-weight: 600;
+    color: var(--ink-deep); margin-top: 0.2rem;
   }
   .venue-carousel {
     margin-top: 1.8rem;
@@ -460,54 +467,63 @@
   @media (prefers-reduced-motion: reduce) { .venue-track { animation: none; } }
 
   /* ── SCHEDULE ─────────────────────────────────────── */
-  .schedule { margin-top: 1.8rem; }
+  .schedule { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.4rem; text-align: left; }
   .schedule-row {
-    display: flex; gap: 1.4rem; align-items: baseline;
-    padding: 0.9rem 0;
-    border-bottom: 1px solid var(--mist);
+    display: flex; align-items: center; gap: 1.2rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--page);
+    border-radius: 16px;
+    border-left: 3px solid var(--gold);
   }
-  .schedule-row:first-child { border-top: 1px solid var(--mist); }
   .schedule-time {
-    font-family: 'Fraunces', serif; font-style: italic; font-size: 1rem;
-    color: var(--gold-text); min-width: 56px;
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.05rem;
+    color: var(--ink-deep); min-width: 56px;
   }
-  .schedule-name { font-size: 0.98rem; color: var(--charcoal); }
+  .schedule-name { font-size: 0.98rem; font-weight: 600; color: var(--charcoal); }
 
-  /* ── HISTORIA (verso) ─────────────────────────────── */
-  .verse { margin-top: 1.6rem; }
-  .verse p {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-size: 1.34rem;
-    color: var(--ink-deep);
-    line-height: 1.5;
-    margin: 0.9rem 0;
+  /* ── HISTORIA ─────────────────────────────────────── */
+  .verse-intro {
+    font-family: 'Fraunces', serif; font-style: italic; font-size: 1.15rem;
+    color: var(--ink-deep); line-height: 1.6; max-width: 38ch; margin: 0 auto;
   }
-  .verse p:nth-child(2) { padding-left: 1.4rem; }
-  .verse p:nth-child(3) { padding-left: 0.5rem; }
-  .verse p:last-child {
-    padding-left: 2rem;
-    font-size: 1.55rem;
-    font-weight: 500;
-    color: var(--gold-text);
+  .verse-intro .verse-mark { color: var(--gold-text); font-weight: 600; }
+  .timeline-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-top: 1.6rem;
   }
-  .verse-mark { color: var(--gold); font-style: normal; margin-right: 0.5rem; font-size: 0.85em; }
+  .timeline-card {
+    background: var(--page);
+    border-radius: 16px;
+    padding: 1.2rem 0.8rem;
+    text-align: center;
+  }
+  .timeline-icon { color: var(--gold-text); display: flex; justify-content: center; margin-bottom: 0.4rem; }
+  .timeline-label { font-family: 'Fraunces', serif; font-size: 0.88rem; font-weight: 600; color: var(--ink-deep); }
 
   /* ── RSVP / WHATSAPP ROWS ─────────────────────────── */
-  .wa-list { margin-top: 1.8rem; }
+  .wa-list { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.6rem; text-align: left; }
   .wa-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 1.1rem 0;
-    border-top: 1px solid var(--mist);
+    display: flex; align-items: center; gap: 0.9rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--page);
+    border-radius: 50px;
     text-decoration: none;
-    transition: padding-left 0.25s ease;
+    transition: transform 0.25s ease;
   }
-  .wa-row:last-child { border-bottom: 1px solid var(--mist); }
-  .wa-row:hover { padding-left: 0.4rem; }
+  .wa-row:hover { transform: translateY(-1px); }
+  .wa-icon-badge {
+    width: 38px; height: 38px; flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ink) 0%, var(--ink-deep) 100%);
+    color: var(--gold-soft);
+    display: flex; align-items: center; justify-content: center;
+  }
   .wa-name {
-    font-family: 'Fraunces', serif; font-size: 1.1rem; color: var(--ink-deep);
+    font-family: 'Fraunces', serif; font-size: 1.05rem; color: var(--ink-deep);
   }
-  .wa-arrow { color: var(--gold); font-size: 1rem; }
+  .wa-arrow { margin-left: auto; color: var(--gold-text); font-size: 1rem; }
 
   /* ── MODAL ────────────────────────────────────────── */
   .modal-overlay {
@@ -642,139 +658,207 @@
   </div>
 
   <!-- CUENTA ATRÁS -->
-  <div class="section reveal" id="cuenta-atras">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 8 1-1.5 5-3 5-8M7 21c0-5 4-6.5 5-8 1 1.5 5 3 5 8"/></svg></div>
-    <p class="eyebrow">Faltan</p>
-    <h2 class="section-title">Para Nuestro Gran Día</h2>
-    <div class="countdown-row">
-      <div class="cd-box"><span class="cd-val" id="cd-days">0</span><span class="cd-lbl">Días</span></div>
-      <div class="cd-box"><span class="cd-val" id="cd-hours">0</span><span class="cd-lbl">Horas</span></div>
-      <div class="cd-box"><span class="cd-val" id="cd-mins">0</span><span class="cd-lbl">Min</span></div>
-      <div class="cd-box"><span class="cd-val" id="cd-secs">0</span><span class="cd-lbl">Seg</span></div>
+  <div class="section-wrap reveal" id="cuenta-atras">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 8 1-1.5 5-3 5-8M7 21c0-5 4-6.5 5-8 1 1.5 5 3 5 8"/></svg></div>
+        <p class="section-tag">Faltan</p>
+        <h2 class="section-title">Para Nuestro Gran Día</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <div class="countdown-row">
+        <div class="cd-box"><span class="cd-val" id="cd-days">0</span><span class="cd-lbl">Días</span></div>
+        <div class="cd-box"><span class="cd-val" id="cd-hours">0</span><span class="cd-lbl">Horas</span></div>
+        <div class="cd-box"><span class="cd-val" id="cd-mins">0</span><span class="cd-lbl">Min</span></div>
+        <div class="cd-box"><span class="cd-val" id="cd-secs">0</span><span class="cd-lbl">Seg</span></div>
+      </div>
+      <button class="btn-line" onclick="downloadICS()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Añadir a mi calendario</button>
     </div>
-    <button class="btn-line" onclick="downloadICS()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Añadir a mi calendario</button>
   </div>
 
   <!-- EL GRAN DÍA -->
-  <div class="section reveal align-right" id="gran-dia">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
-    <p class="eyebrow">Lugar &amp; Fecha</p>
-    <h2 class="section-title">El Gran Día</h2>
-    <div class="details">
-      <div class="detail-row"><span class="lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Fecha</span><span class="val">24 Octubre 2026</span></div>
-      <div class="detail-row"><span class="lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> Hora</span><span class="val">12:00 h</span></div>
-      <div class="detail-row"><span class="lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> Lugar</span><span class="val">Hacienda Domitila</span></div>
-    </div>
-    <div class="venue-carousel">
-      <div class="venue-track">
-        <div class="venue-slide" onclick="openLightbox('img/hacienda-1.jpg')"><img src="img/hacienda-1.jpg" alt="Entrada de Hacienda Domitila"></div>
-        <div class="venue-slide" onclick="openLightbox('img/hacienda-2.jpg')"><img src="img/hacienda-2.jpg" alt="Ceremonia al aire libre en Hacienda Domitila"></div>
-        <div class="venue-slide" onclick="openLightbox('img/hacienda-3.jpg')"><img src="img/hacienda-3.jpg" alt="Acceso de Hacienda Domitila"></div>
-        <div class="venue-slide" onclick="openLightbox('img/hacienda-4.jpg')"><img src="img/hacienda-4.jpg" alt="Porche cubierto de Hacienda Domitila"></div>
-        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-1.jpg" alt=""></div>
-        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-2.jpg" alt=""></div>
-        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-3.jpg" alt=""></div>
-        <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-4.jpg" alt=""></div>
+  <div class="section-wrap reveal" id="gran-dia">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+        <p class="section-tag">Lugar &amp; Fecha</p>
+        <h2 class="section-title">El Gran Día</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
       </div>
+      <div class="details">
+        <div class="detail-item">
+          <div class="detail-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+          <div class="detail-title">Fecha</div>
+          <div class="detail-text">24 Oct 2026</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+          <div class="detail-title">Hora</div>
+          <div class="detail-text">12:00 h</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+          <div class="detail-title">Lugar</div>
+          <div class="detail-text">H. Domitila</div>
+        </div>
+      </div>
+      <div class="venue-carousel">
+        <div class="venue-track">
+          <div class="venue-slide" onclick="openLightbox('img/hacienda-1.jpg')"><img src="img/hacienda-1.jpg" alt="Entrada de Hacienda Domitila"></div>
+          <div class="venue-slide" onclick="openLightbox('img/hacienda-2.jpg')"><img src="img/hacienda-2.jpg" alt="Ceremonia al aire libre en Hacienda Domitila"></div>
+          <div class="venue-slide" onclick="openLightbox('img/hacienda-3.jpg')"><img src="img/hacienda-3.jpg" alt="Acceso de Hacienda Domitila"></div>
+          <div class="venue-slide" onclick="openLightbox('img/hacienda-4.jpg')"><img src="img/hacienda-4.jpg" alt="Porche cubierto de Hacienda Domitila"></div>
+          <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-1.jpg" alt=""></div>
+          <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-2.jpg" alt=""></div>
+          <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-3.jpg" alt=""></div>
+          <div class="venue-slide" aria-hidden="true"><img src="img/hacienda-4.jpg" alt=""></div>
+        </div>
+      </div>
+      <a class="btn-line" href="https://maps.google.com/?q=Hacienda+Domitila+La+Puebla+del+R%C3%ADo+Sevilla" target="_blank"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg> Cómo llegar</a>
     </div>
-    <a class="btn-line" href="https://maps.google.com/?q=Hacienda+Domitila+La+Puebla+del+R%C3%ADo+Sevilla" target="_blank"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg> Cómo llegar</a>
   </div>
 
   <!-- HORARIOS -->
-  <div class="section reveal" id="horarios">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
-    <p class="eyebrow">Cronograma</p>
-    <h2 class="section-title">Horarios</h2>
-    <div class="schedule">
-      <div class="schedule-row"><span class="schedule-time">12:00</span><span class="schedule-name">Ceremonia</span></div>
-      <div class="schedule-row"><span class="schedule-time">13:00</span><span class="schedule-name">Cóctel</span></div>
-      <div class="schedule-row"><span class="schedule-time">15:00</span><span class="schedule-name">Comida</span></div>
-      <div class="schedule-row"><span class="schedule-time">18:00</span><span class="schedule-name">Fiesta</span></div>
+  <div class="section-wrap reveal" id="horarios">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div>
+        <p class="section-tag">Cronograma</p>
+        <h2 class="section-title">Horarios</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <div class="schedule">
+        <div class="schedule-row"><span class="schedule-time">12:00</span><span class="schedule-name">Ceremonia</span></div>
+        <div class="schedule-row"><span class="schedule-time">13:00</span><span class="schedule-name">Cóctel</span></div>
+        <div class="schedule-row"><span class="schedule-time">15:00</span><span class="schedule-name">Comida</span></div>
+        <div class="schedule-row"><span class="schedule-time">18:00</span><span class="schedule-name">Fiesta</span></div>
+      </div>
     </div>
   </div>
 
   <!-- NUESTRA HISTORIA -->
-  <div class="section reveal align-right" id="historia">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9.3-8.8C1.2 8 2.3 4 6 4c2 0 4 1.4 6 4 2-2.6 4-4 6-4 3.7 0 4.8 4 3.3 7.2C19 15.6 12 20 12 20z"/></svg></div>
-    <p class="eyebrow">Un Paso Más</p>
-    <h2 class="section-title">En Nuestra Historia</h2>
-    <div class="verse">
-      <p><span class="verse-mark">—</span>Nos conocimos siendo niños.</p>
-      <p><span class="verse-mark">—</span>Nos enamoramos.</p>
-      <p><span class="verse-mark">—</span>Formamos una preciosa familia.</p>
-      <p><span class="verse-mark">♥</span>Y ahora, nos casamos.</p>
+  <div class="section-wrap reveal" id="historia">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9.3-8.8C1.2 8 2.3 4 6 4c2 0 4 1.4 6 4 2-2.6 4-4 6-4 3.7 0 4.8 4 3.3 7.2C19 15.6 12 20 12 20z"/></svg></div>
+        <p class="section-tag">Un Paso Más</p>
+        <h2 class="section-title">En Nuestra Historia</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <p class="verse-intro">Nos conocimos siendo niños, nos enamoramos y formamos una preciosa familia — <span class="verse-mark">y ahora, nos casamos.</span></p>
+      <div class="timeline-grid">
+        <div class="timeline-card">
+          <div class="timeline-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 21s7-7.5 7-12a7 7 0 10-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></svg></div>
+          <div class="timeline-label">Nos Conocimos</div>
+        </div>
+        <div class="timeline-card">
+          <div class="timeline-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 20s-7-4.4-9.3-8.8C1.2 8 2.3 4 6 4c2 0 4 1.4 6 4 2-2.6 4-4 6-4 3.7 0 4.8 4 3.3 7.2C19 15.6 12 20 12 20z"/></svg></div>
+          <div class="timeline-label">Nos Enamoramos</div>
+        </div>
+        <div class="timeline-card">
+          <div class="timeline-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg></div>
+          <div class="timeline-label">Formamos una Familia</div>
+        </div>
+        <div class="timeline-card">
+          <div class="timeline-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="9" cy="13" r="5.2"/><circle cx="15" cy="13" r="5.2"/></svg></div>
+          <div class="timeline-label">¡Nos Casamos!</div>
+        </div>
+      </div>
+      <!-- TODO: añadir fotos de la pareja cuando estén disponibles -->
     </div>
-    <!-- TODO: añadir fotos de la pareja cuando estén disponibles -->
   </div>
 
   <!-- VESTIMENTA -->
-  <div class="section reveal" id="vestimenta">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a2 2 0 0 1 2 2c0 .9-.6 1.4-1.2 1.8L12 8.2l-.8-.4C10.6 7.4 10 6.9 10 6a2 2 0 0 1 2-2z"/><path d="M12 8.2 2.5 14 4 18h16l1.5-4L12 8.2z"/></svg></div>
-    <p class="eyebrow">Dress Code</p>
-    <h2 class="section-title">Vestimenta</h2>
-    <p class="section-body">Vístete como te sientas más cómodo/a — este día es para disfrutar.</p>
-    <div class="tag-row">
-      <span class="tag">Cómodo</span>
-      <span class="tag">Colores Vivos</span>
-      <span class="tag">Al Aire Libre</span>
+  <div class="section-wrap reveal" id="vestimenta">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a2 2 0 0 1 2 2c0 .9-.6 1.4-1.2 1.8L12 8.2l-.8-.4C10.6 7.4 10 6.9 10 6a2 2 0 0 1 2-2z"/><path d="M12 8.2 2.5 14 4 18h16l1.5-4L12 8.2z"/></svg></div>
+        <p class="section-tag">Dress Code</p>
+        <h2 class="section-title">Vestimenta</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <p class="section-body">Vístete como te sientas más cómodo/a — este día es para disfrutar.</p>
+      <div class="tag-row">
+        <span class="tag">Cómodo</span>
+        <span class="tag">Colores Vivos</span>
+        <span class="tag">Al Aire Libre</span>
+      </div>
     </div>
   </div>
 
   <!-- PEQUES -->
-  <div class="section reveal align-center" id="peques">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a5 5 0 0 1 5 5c0 3-2 5.3-3.6 6.2-.3.2-.5.5-.5.9V16h-1.8v-.9c0-.4-.2-.7-.5-.9C9 13.3 7 11 7 8a5 5 0 0 1 5-5z"/><path d="M10.5 20h3M11 18h2v2h-2z"/></svg></div>
-    <p class="eyebrow">Una Pregunta</p>
-    <h2 class="section-title">¿Peques en la Fiesta?</h2>
-    <hr class="rule">
-    <p class="section-body">La asistencia de los más peques es opcional — todo depende de las ganas que tengáis de divertiros. ¡Vosotros decidís!</p>
-    <div class="tag-row"><span class="tag">Opcional</span></div>
+  <div class="section-wrap reveal" id="peques">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a5 5 0 0 1 5 5c0 3-2 5.3-3.6 6.2-.3.2-.5.5-.5.9V16h-1.8v-.9c0-.4-.2-.7-.5-.9C9 13.3 7 11 7 8a5 5 0 0 1 5-5z"/><path d="M10.5 20h3M11 18h2v2h-2z"/></svg></div>
+        <p class="section-tag">Una Pregunta</p>
+        <h2 class="section-title">¿Peques en la Fiesta?</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <p class="section-body">La asistencia de los más peques es opcional — todo depende de las ganas que tengáis de divertiros. ¡Vosotros decidís!</p>
+      <div class="tag-row"><span class="tag">Opcional</span></div>
+    </div>
   </div>
 
   <!-- CONFIRMAR -->
-  <div class="section reveal" id="confirmar">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div>
-    <p class="eyebrow">Antes del 1 de Octubre</p>
-    <h2 class="section-title">Confirma tu Asistencia</h2>
-    <p class="section-body">Nos hará muy felices contar contigo. Confirma directamente por WhatsApp:</p>
-    <div class="wa-list">
-      <a class="wa-row" href="https://wa.me/34617026095?text=Hola%20Daniel%2C%20confirmo%20mi%20asistencia%20a%20vuestra%20boda%20el%2024%20de%20octubre%20de%202026." target="_blank">
-        <span class="wa-name">Daniel</span><span class="wa-arrow">→</span>
-      </a>
-      <a class="wa-row" href="https://wa.me/34671427009?text=Hola%20Irene%2C%20confirmo%20mi%20asistencia%20a%20vuestra%20boda%20el%2024%20de%20octubre%20de%202026." target="_blank">
-        <span class="wa-name">Irene</span><span class="wa-arrow">→</span>
-      </a>
+  <div class="section-wrap reveal" id="confirmar">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div>
+        <p class="section-tag">Antes del 1 de Octubre</p>
+        <h2 class="section-title">Confirma tu Asistencia</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <p class="section-body">Nos hará muy felices contar contigo. Confirma directamente por WhatsApp:</p>
+      <div class="wa-list">
+        <a class="wa-row" href="https://wa.me/34617026095?text=Hola%20Daniel%2C%20confirmo%20mi%20asistencia%20a%20vuestra%20boda%20el%2024%20de%20octubre%20de%202026." target="_blank">
+          <div class="wa-icon-badge"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
+          <span class="wa-name">Daniel</span><span class="wa-arrow">→</span>
+        </a>
+        <a class="wa-row" href="https://wa.me/34671427009?text=Hola%20Irene%2C%20confirmo%20mi%20asistencia%20a%20vuestra%20boda%20el%2024%20de%20octubre%20de%202026." target="_blank">
+          <div class="wa-icon-badge"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
+          <span class="wa-name">Irene</span><span class="wa-arrow">→</span>
+        </a>
+      </div>
     </div>
   </div>
 
   <!-- ALERGIAS -->
-  <div class="section reveal align-right" id="alergias">
-    <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
-    <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
-    <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 16h.01"/></svg></div>
-    <p class="eyebrow">Tu Bienestar Nos Importa</p>
-    <h2 class="section-title">Alergias e Intolerancias</h2>
-    <p class="section-body">Si tú o algún acompañante tenéis alguna alergia o intolerancia, avisadnos por WhatsApp:</p>
-    <div class="wa-list">
-      <a class="wa-row" href="https://wa.me/34617026095?text=Hola%20Daniel%2C%20quiero%20avisaros%20de%20una%20alergia%20o%20intolerancia%20alimentaria%20para%20la%20boda%3A%20" target="_blank">
-        <span class="wa-name">Daniel</span><span class="wa-arrow">→</span>
-      </a>
-      <a class="wa-row" href="https://wa.me/34671427009?text=Hola%20Irene%2C%20quiero%20avisaros%20de%20una%20alergia%20o%20intolerancia%20alimentaria%20para%20la%20boda%3A%20" target="_blank">
-        <span class="wa-name">Irene</span><span class="wa-arrow">→</span>
-      </a>
+  <div class="section-wrap reveal" id="alergias">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 16h.01"/></svg></div>
+        <p class="section-tag">Tu Bienestar Nos Importa</p>
+        <h2 class="section-title">Alergias e Intolerancias</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <p class="section-body">Si tú o algún acompañante tenéis alguna alergia o intolerancia, avisadnos por WhatsApp:</p>
+      <div class="wa-list">
+        <a class="wa-row" href="https://wa.me/34617026095?text=Hola%20Daniel%2C%20quiero%20avisaros%20de%20una%20alergia%20o%20intolerancia%20alimentaria%20para%20la%20boda%3A%20" target="_blank">
+          <div class="wa-icon-badge"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
+          <span class="wa-name">Daniel</span><span class="wa-arrow">→</span>
+        </a>
+        <a class="wa-row" href="https://wa.me/34671427009?text=Hola%20Irene%2C%20quiero%20avisaros%20de%20una%20alergia%20o%20intolerancia%20alimentaria%20para%20la%20boda%3A%20" target="_blank">
+          <div class="wa-icon-badge"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
+          <span class="wa-name">Irene</span><span class="wa-arrow">→</span>
+        </a>
+      </div>
     </div>
   </div>
 
