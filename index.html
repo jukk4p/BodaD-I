@@ -52,7 +52,13 @@
   .section.align-right .rule { margin-left: auto; }
   .section.align-center .rule { margin-left: auto; margin-right: auto; }
 
-  .app { max-width: 560px; margin: 0 auto; position: relative; }
+  .app {
+    max-width: 560px; margin: 0 auto; position: relative;
+    background-image: url('img/floral-border-mirrored.jpg'), url('img/floral-border.jpg');
+    background-repeat: repeat-y, repeat-y;
+    background-position: left top, right top;
+    background-size: 72px auto, 72px auto;
+  }
 
   /* ── GATE: el monograma se dibuja, luego las puertas se abren ── */
   .gate {
