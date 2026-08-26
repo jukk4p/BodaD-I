@@ -68,7 +68,7 @@
 
   .envelope {
     position: relative;
-    width: 88vw; max-width: 340px; min-height: 440px;
+    width: 88vw; max-width: 340px; height: 280px;
     perspective: 1200px;
     opacity: 0; animation: gateFade 0.5s ease-out 0.2s forwards;
   }
@@ -91,32 +91,40 @@
   .envelope-content {
     position: absolute; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 2rem 1.6rem;
+    padding: 1.6rem 1.6rem;
     text-align: center;
     z-index: 2;
     opacity: 0; transform: scale(0.9);
     transition: opacity 1.6s ease 1s, transform 1.6s cubic-bezier(.2,.8,.2,1) 1s;
   }
   .gate-kicker {
-    font-family: 'Archivo', sans-serif; font-size: 0.64rem; font-weight: 600;
-    letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold-text);
-    margin-bottom: 1.3rem;
+    font-family: 'Archivo', sans-serif; font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-text);
+    margin-bottom: 1rem;
   }
-  .letter-crest { width: 76px; height: 76px; margin-bottom: 1rem; }
+  .letter-crest { width: 62px; height: 62px; margin-bottom: 0.8rem; }
   .envelope-flap {
-    position: absolute; top: 0; left: 0; width: 100%; height: 46%;
+    position: absolute; top: 0; left: 0; width: 100%; height: 108px;
     background: linear-gradient(155deg, #ece7da 0%, #ddd4bf 100%);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     border-top: 1px solid rgba(180, 134, 76, 0.4);
     transform-origin: top center;
     transform-style: preserve-3d;
     z-index: 3;
-    display: flex; align-items: flex-start; justify-content: center; padding-top: 1.2rem;
+    display: flex; align-items: flex-start; justify-content: center; padding-top: 1rem;
     transition: transform 1.9s cubic-bezier(.6,0,.2,1), opacity 0.9s ease 1.4s;
   }
-  .envelope-seal { width: 44px; height: 44px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
+  .envelope-seal { width: 38px; height: 38px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
+  .envelope-label {
+    position: absolute; left: 0; right: 0; top: 132px;
+    text-align: center; z-index: 1;
+    font-family: 'Archivo', sans-serif; font-size: 0.58rem; font-weight: 600;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-text);
+    transition: opacity 0.5s ease;
+  }
   .gate.closed .envelope-flap { transform: rotateX(-162deg); opacity: 0; }
   .gate.closed .envelope-content { opacity: 1; transform: scale(1); }
+  .gate.closed .envelope-label { opacity: 0; }
 
   .gate-tap {
     margin-top: 1.8rem;
@@ -604,6 +612,7 @@
     <div class="envelope-flap">
       <svg class="envelope-seal" viewBox="0 0 200 200"><use href="#crest"/></svg>
     </div>
+    <p class="envelope-label">Boda Daniel &amp; Irene</p>
   </div>
   <p class="gate-tap">Toca para abrir</p>
 </div>
