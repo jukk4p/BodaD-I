@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Invitación de boda de Daniel &amp; Irene · 24 de octubre de 2026 · Hacienda Domitila, La Puebla del Río.">
-<link rel="icon" type="image/png" href="img/monogram.png">
+<link rel="icon" type="image/png" href="img/favicon.png">
 <title>Daniel &amp; Irene · 24 Octubre 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Archivo:wght@400;500;600&family=Alex+Brush&family=Cormorant+Garamond:ital,wght@1,400&display=swap" rel="stylesheet">
 <style>
@@ -369,6 +369,34 @@
     border: 1px solid var(--mist); border-radius: 50px; padding: 0.4rem 0.9rem;
   }
 
+  /* ── QR (sin backend todavía, bloqueado hasta el día de la boda) ── */
+  .qr-wrap {
+    position: relative;
+    display: inline-block;
+    margin-top: 1.6rem;
+    padding: 1.1rem;
+    background: var(--page);
+    border-radius: 18px;
+  }
+  #qr-canvas { width: 140px; height: 140px; }
+  #qr-canvas svg { width: 100%; height: 100%; display: block; }
+  .qr-lock-overlay {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+    background: rgba(246, 247, 245, 0.94);
+    backdrop-filter: blur(2px);
+    border-radius: 17px;
+    color: var(--gold-text);
+    text-align: center;
+  }
+  .qr-wrap.is-locked .qr-lock-overlay { display: flex; }
+  .qr-lock-overlay span {
+    font-family: 'Archivo', sans-serif; font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-deep);
+    line-height: 1.5;
+  }
+
   .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s ease, transform 0.7s ease; }
   .reveal.in { opacity: 1; transform: translateY(0); }
   @media (prefers-reduced-motion: reduce) {
@@ -636,6 +664,7 @@
     <li><a href="#horarios" onclick="toggleMenu()">Horarios</a></li>
     <li><a href="#historia" onclick="toggleMenu()">Nuestra Historia</a></li>
     <li><a href="#vestimenta" onclick="toggleMenu()">Vestimenta</a></li>
+    <li><a href="#recuerdos" onclick="toggleMenu()">Recuerdos</a></li>
     <li><a href="#confirmar" onclick="toggleMenu()">Confirmar</a></li>
     <li><a href="#alergias" onclick="toggleMenu()">Alergias</a></li>
   </ul>
@@ -796,6 +825,28 @@
     </div>
   </div>
 
+  <!-- RECUERDOS (QR, sin backend todavía) -->
+  <div class="section-wrap reveal" id="recuerdos">
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg></div>
+        <p class="section-tag">Tus Fotos &amp; Vídeos</p>
+        <h2 class="section-title">Comparte tus Recuerdos</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
+      </div>
+      <p class="section-body">El día de la boda, escanea el código para compartir con nosotros tus fotos y vídeos.</p>
+      <div class="qr-wrap is-locked" id="qr-wrap">
+        <div id="qr-canvas" role="img" aria-label="Código QR para compartir tus fotos y vídeos"></div>
+        <div class="qr-lock-overlay" id="qr-lock-overlay">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          <span>Disponible el<br>24 de Octubre de 2026</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- PEQUES -->
   <div class="section-wrap reveal" id="peques">
     <div class="card-premium">
@@ -884,6 +935,7 @@
   <source src="img/Christina%20Perri%20-%20A%20Thousand%20Years.mp3" type="audio/mpeg">
 </audio>
 
+<script src="js/qrcode.js"></script>
 <script>
   // ── APERTURA ─────────────────────────────────────────
   document.body.style.overflow = 'hidden';
@@ -917,6 +969,22 @@
   function toggleMenu() {
     document.getElementById('nav-overlay').classList.toggle('open');
   }
+
+  // ── RECUERDOS: QR real, bloqueado hasta el día de la boda (sin backend todavía) ──
+  const recuerdosActive = Date.now() >= new Date('2026-10-24T00:00:00').getTime();
+  (function () {
+    const qrWrap = document.getElementById('qr-wrap');
+    if (recuerdosActive && qrWrap) qrWrap.classList.remove('is-locked');
+  })();
+  (function generateQr() {
+    const qrCanvas = document.getElementById('qr-canvas');
+    if (!qrCanvas || typeof qrcode !== 'function') return;
+    const qrUrl = location.origin + location.pathname + '#recuerdos';
+    const qr = qrcode(0, 'M');
+    qr.addData(qrUrl);
+    qr.make();
+    qrCanvas.innerHTML = qr.createSvgTag(4, 8).replace(/fill="black"/, 'fill="#1f3347"');
+  })();
 
   // ── SCROLL: barra de progreso ────────────────────────
   const progress = document.getElementById('progress');
