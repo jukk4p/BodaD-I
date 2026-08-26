@@ -234,6 +234,22 @@
     z-index: 0;
     transition: transform 0.1s linear;
   }
+  .hero-floral {
+    position: absolute;
+    width: 230px; height: auto;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .hero-floral.tr {
+    top: -8px; right: -8px;
+    -webkit-mask-image: radial-gradient(circle at 100% 0%, black 30%, transparent 70%);
+    mask-image: radial-gradient(circle at 100% 0%, black 30%, transparent 70%);
+  }
+  .hero-floral.bl {
+    bottom: -8px; left: -8px;
+    -webkit-mask-image: radial-gradient(circle at 0% 100%, black 30%, transparent 70%);
+    mask-image: radial-gradient(circle at 0% 100%, black 30%, transparent 70%);
+  }
   .hero-inner { position: relative; z-index: 1; }
   .hero-names {
     font-family: 'Fraunces', serif;
@@ -474,8 +490,20 @@
 
   /* ── CLOSE ────────────────────────────────────────── */
   .closing {
+    position: relative;
+    overflow: hidden;
     padding: 4.6rem 2rem 5rem;
     text-align: center;
+  }
+  .closing > *:not(.closing-floral) { position: relative; z-index: 1; }
+  .closing-floral {
+    position: absolute;
+    bottom: -8px; left: -8px;
+    width: 190px; height: auto;
+    z-index: 0;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(circle at 0% 100%, black 25%, transparent 68%);
+    mask-image: radial-gradient(circle at 0% 100%, black 25%, transparent 68%);
   }
   .closing-quote {
     font-family: 'Fraunces', serif; font-style: italic; font-size: 1.15rem;
@@ -568,6 +596,8 @@
   <!-- HERO -->
   <div class="hero" id="inicio">
     <img class="hero-mono" id="hero-mono" src="img/monogram.png" alt="" aria-hidden="true">
+    <img class="hero-floral tr" src="img/floral-tr-crop.jpg" alt="" aria-hidden="true">
+    <img class="hero-floral bl" src="img/floral-bl-crop.jpg" alt="" aria-hidden="true">
     <div class="hero-inner">
       <p class="eyebrow">Una Boda</p>
       <h1 class="hero-names">Daniel <span class="hero-amp">&amp;</span><br>Irene</h1>
@@ -865,6 +895,7 @@
 
   <!-- CIERRE -->
   <div class="closing">
+    <img class="closing-floral" src="img/floral-bl-crop.jpg" alt="" aria-hidden="true">
     <p class="closing-quote">"La vida está hecha de momentos, y este será uno de los más importantes de la nuestra. Gracias por acompañarnos."</p>
     <p class="closing-names">Daniel &amp; Irene</p>
     <p class="closing-tag">¡Os Esperamos!</p>
