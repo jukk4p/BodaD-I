@@ -412,6 +412,26 @@
     .reveal { opacity: 1; transform: none; transition: none; }
   }
 
+  /* ── PÉTALOS FLOTANTES ────────────────────────────── */
+  .petals { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; max-width: 480px; margin: 0 auto; }
+  .petal {
+    position: absolute; top: -5%;
+    width: 8px; height: 11px;
+    background: radial-gradient(ellipse at 30% 30%, #faf1de, #d9b98a 70%);
+    border-radius: 70% 20% 70% 20%;
+    opacity: 0;
+    animation: petalFall linear infinite;
+  }
+  @keyframes petalFall {
+    0%   { transform: translateY(-8vh) translateX(0) rotate(0deg); opacity: 0; }
+    10%  { opacity: 0.6; }
+    90%  { opacity: 0.4; }
+    100% { transform: translateY(112vh) translateX(var(--drift,40px)) rotate(360deg); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .petal { animation: none !important; opacity: 0 !important; }
+  }
+
   /* ── COUNTDOWN ────────────────────────────────────── */
   .countdown-row {
     display: flex; gap: 0; margin-top: 1.9rem;
@@ -663,6 +683,8 @@
   </ul>
 </div>
 
+<div class="petals" id="petals"></div>
+
 <div class="app">
 
   <!-- HERO -->
@@ -812,7 +834,6 @@
       <p class="section-body">Vístete como te sientas más cómodo/a — este día es para disfrutar.</p>
       <div class="tag-row">
         <span class="tag">Cómodo</span>
-        <span class="tag">Colores Vivos</span>
         <span class="tag">Al Aire Libre</span>
       </div>
     </div>
@@ -939,6 +960,18 @@
     if (bgMusic && musicOn) {
       bgMusic.play().catch(e => console.log('Autoplay audio:', e));
     }
+  }
+
+  // ── PÉTALOS FLOTANTES ──────────────────────────────
+  const petalsWrap = document.getElementById('petals');
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.style.left = (Math.random() * 100) + '%';
+    p.style.setProperty('--drift', (Math.random() * 80 - 40) + 'px');
+    p.style.animationDuration = (12 + Math.random() * 10) + 's';
+    p.style.animationDelay = (-Math.random() * 15) + 's';
+    petalsWrap.appendChild(p);
   }
 
   // ── MÚSICA ────────────────────────────────────────────
