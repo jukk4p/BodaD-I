@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Sube tus fotos y vídeos de la boda de Daniel y Irene">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<title>Subir Fotos · Boda Daniel &amp; Irene</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page:       #e8ece9;
+    --paper:      #f6f7f5;
+    --ink:        #2f4a63;
+    --ink-deep:   #1f3347;
+    --ink-soft:   #5c7893;
+    --gold:       #b4864c;
+    --gold-soft:  #d9b98a;
+    --gold-text:  #8a6636;
+    --charcoal:   #2b2a27;
+    --muted:      #6b7570;
+    --mist:       #dbe1de;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Archivo', sans-serif;
+    background: var(--page);
+    color: var(--charcoal);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    max-width: 420px;
+    width: 100%;
+    background: var(--paper);
+    border-radius: 24px;
+    border: 1px solid rgba(180, 134, 76, 0.25);
+    box-shadow: 0 20px 50px rgba(31, 51, 71, 0.15);
+    padding: 2.6rem 1.8rem;
+    text-align: center;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.5rem;
+    color: var(--ink-deep);
+    letter-spacing: 0.01em;
+    margin-bottom: 0.6rem;
+  }
+  p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 1.9rem;
+  }
+  .btn-line {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    background: none; border: none;
+    font-family: 'Archivo', sans-serif;
+    font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink);
+    cursor: pointer;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gold);
+  }
+  .btn-line.is-disabled {
+    color: var(--muted);
+    border-bottom-color: var(--mist);
+    cursor: not-allowed;
+  }
+  .back-link {
+    display: inline-block;
+    margin-top: 1.8rem;
+    font-family: 'Archivo', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--gold-text);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+  .back-link:hover { border-color: var(--gold-text); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Daniel &amp; Irene</h1>
+    <p>Comparte con nosotros tus fotos y vídeos del gran día.</p>
+    <button class="btn-line" id="upload-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> <span id="upload-btn-label">Subir Fotos y Vídeos</span></button>
+    <input type="file" id="upload-input" multiple accept="image/*,video/*" style="display:none">
+    <br>
+    <a class="back-link" href="index.html?open=1">← Volver a la invitación</a>
+  </div>
+
+  <script src="js/upload.js"></script>
+  <script>
+    const uploadActive = Date.now() >= new Date('2026-10-24T00:00:00').getTime();
+    const btn = document.getElementById('upload-btn');
+    const btnLabel = document.getElementById('upload-btn-label');
+    if (!uploadActive) {
+      btn.classList.add('is-disabled');
+      btnLabel.textContent = 'Disponible el día de la boda';
+    }
+    initUploadFlow({
+      buttonId: 'upload-btn',
+      inputId: 'upload-input',
+      labelId: 'upload-btn-label',
+      isActive: () => uploadActive,
+      lockedMessage: '¡Esta sección se activará el día de la boda (24 de octubre de 2026)! Guardad vuestras fotos y compartidlas con nosotros ese día. 💍'
+    });
+  </script>
+</body>
+</html>
