@@ -471,6 +471,11 @@
     border-bottom: 1px solid var(--gold);
     text-decoration: none;
   }
+  .btn-line.is-disabled {
+    color: var(--muted);
+    border-bottom-color: var(--mist);
+    cursor: not-allowed;
+  }
 
   /* ── DETAILS (El Gran Día) ────────────────────────── */
   .details {
@@ -839,7 +844,7 @@
     </div>
   </div>
 
-  <!-- RECUERDOS (QR, sin backend todavía) -->
+  <!-- RECUERDOS (QR + subida de fotos vía n8n) -->
   <div class="section-wrap reveal" id="recuerdos">
     <div class="card-premium">
       <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
@@ -850,13 +855,20 @@
         <h2 class="section-title">Comparte tus Recuerdos</h2>
         <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
       </div>
-      <p class="section-body">El día de la boda, escanea el código para compartir con nosotros tus fotos y vídeos.</p>
+      <p class="section-body">El día de la boda, escanea el código o pulsa el botón para compartir con nosotros tus fotos y vídeos al momento.</p>
       <div class="qr-wrap is-locked" id="qr-wrap">
-        <div id="qr-canvas" role="img" aria-label="Código QR para compartir tus fotos y vídeos"></div>
+        <div id="qr-canvas" role="img" aria-label="Código QR para subir tus fotos y vídeos"></div>
         <div class="qr-lock-overlay" id="qr-lock-overlay">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
           <span>Disponible el<br>24 de Octubre de 2026</span>
         </div>
+      </div>
+      <div>
+        <button class="btn-line" id="upload-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> <span id="upload-btn-label">Subir Fotos y Vídeos</span></button>
+        <input type="file" id="upload-input" multiple accept="image/*,video/*" style="display:none">
+      </div>
+      <div>
+        <a class="btn-line" id="gallery-link" href="galeria.html"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 14l4.5-4.5a2 2 0 0 1 2.8 0L15 14"/><circle cx="9" cy="9" r="1.2"/></svg> Ver Galería</a>
       </div>
     </div>
   </div>
@@ -950,6 +962,7 @@
 </audio>
 
 <script src="js/qrcode.js"></script>
+<script src="js/upload.js"></script>
 <script>
   // ── APERTURA ─────────────────────────────────────────
   document.body.style.overflow = 'hidden';
@@ -961,6 +974,13 @@
       bgMusic.play().catch(e => console.log('Autoplay audio:', e));
     }
   }
+
+  // Si se llega desde subir.html (?open=1), saltar la portada y abrir directo.
+  window.addEventListener('DOMContentLoaded', () => {
+    if (new URLSearchParams(location.search).has('open')) {
+      openInvitation();
+    }
+  });
 
   // ── PÉTALOS FLOTANTES ──────────────────────────────
   const petalsWrap = document.getElementById('petals');
@@ -996,7 +1016,7 @@
     document.getElementById('nav-overlay').classList.toggle('open');
   }
 
-  // ── RECUERDOS: QR real, bloqueado hasta el día de la boda (sin backend todavía) ──
+  // ── RECUERDOS: QR real + subida de fotos, bloqueado hasta el día de la boda ──
   const recuerdosActive = Date.now() >= new Date('2026-10-24T00:00:00').getTime();
   (function () {
     const qrWrap = document.getElementById('qr-wrap');
@@ -1005,12 +1025,32 @@
   (function generateQr() {
     const qrCanvas = document.getElementById('qr-canvas');
     if (!qrCanvas || typeof qrcode !== 'function') return;
-    const qrUrl = location.origin + location.pathname + '#recuerdos';
+    const qrUrl = location.origin + location.pathname.replace(/[^/]*$/, '') + 'subir.html';
     const qr = qrcode(0, 'M');
     qr.addData(qrUrl);
     qr.make();
     qrCanvas.innerHTML = qr.createSvgTag(4, 8).replace(/fill="black"/, 'fill="#1f3347"');
   })();
+
+  // ── SUBIDA DE ARCHIVOS: envío al webhook de n8n ────
+  // Lógica compartida con subir.html — ver js/upload.js
+  (function () {
+    const btn = document.getElementById('upload-btn');
+    const btnLabel = document.getElementById('upload-btn-label');
+    const galleryLink = document.getElementById('gallery-link');
+    if (!recuerdosActive) {
+      if (btn) btn.classList.add('is-disabled');
+      if (btnLabel) btnLabel.textContent = 'Disponible el día de la boda';
+      if (galleryLink) galleryLink.classList.add('is-disabled');
+    }
+  })();
+  initUploadFlow({
+    buttonId: 'upload-btn',
+    inputId: 'upload-input',
+    labelId: 'upload-btn-label',
+    isActive: () => recuerdosActive,
+    lockedMessage: '¡Esta sección se activará el día de la boda (24 de octubre de 2026)! Guardad vuestras fotos y compartidlas con nosotros ese día. 💍'
+  });
 
   // ── SCROLL: barra de progreso ────────────────────────
   const progress = document.getElementById('progress');
