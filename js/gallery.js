@@ -68,7 +68,8 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
   }
 
   function openLightbox(id) {
-    let index = orderedItems.findIndex(i => i.id === id);
+    const list = orderedItems;
+    let index = list.findIndex(i => i.id === id);
     if (index === -1) return;
     const overlay = document.createElement('div');
     overlay.className = 'gallery-lightbox';
@@ -84,7 +85,7 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
 
     function renderMedia() {
       if (mediaEl) { if (mediaEl.tagName === 'VIDEO') mediaEl.pause(); mediaEl.remove(); }
-      const item = orderedItems[index];
+      const item = list[index];
       if (item.mimeType === 'video/mp4') {
         mediaEl = document.createElement('video');
         mediaEl.controls = true; mediaEl.playsInline = true; mediaEl.src = item.url; mediaEl.poster = item.posterUrl;
@@ -93,11 +94,11 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
         mediaEl.src = item.url;
       }
       overlay.insertBefore(mediaEl, counter);
-      counter.textContent = `${index + 1} / ${orderedItems.length}`;
+      counter.textContent = `${index + 1} / ${list.length}`;
     }
 
     function go(delta) {
-      index = (index + delta + orderedItems.length) % orderedItems.length;
+      index = (index + delta + list.length) % list.length;
       renderMedia();
     }
 
