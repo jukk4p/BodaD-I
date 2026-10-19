@@ -31,6 +31,12 @@ const ALLOWED_FORMATS = new Set([
   'avi',                        // AVI
 ]);
 
+// Pure, synchronous default-deny check: true only for exact ALLOWED_FORMATS
+// members. Anything else (including non-strings) is false. No process spawn.
+function isAllowedFormat(formatName) {
+  return typeof formatName === 'string' && ALLOWED_FORMATS.has(formatName);
+}
+
 // Probes the real, content-sniffed demuxer format of an untrusted file and
 // rejects anything not on ALLOWED_FORMATS. This must run BEFORE any other
 // ffmpeg/ffprobe call touches an untrusted (guest-uploaded) file, because
@@ -48,10 +54,10 @@ async function detectAndValidateFormat(filePath) {
   ]);
   // csv output quotes the field when it contains a comma (e.g. "mov,mp4,...").
   const formatName = stdout.trim().replace(/^"(.*)"$/, '$1');
-  if (!ALLOWED_FORMATS.has(formatName)) {
+  if (!isAllowedFormat(formatName)) {
     throw new Error(`rejected upload: unrecognized or disallowed media format "${formatName}"`);
   }
   return formatName;
 }
 
-module.exports = { runCommand, runFfmpeg, runFfprobe, detectAndValidateFormat };
+module.exports = { runCommand, runFfmpeg, runFfprobe, detectAndValidateFormat, isAllowedFormat, ALLOWED_FORMATS };
