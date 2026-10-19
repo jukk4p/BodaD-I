@@ -16,14 +16,15 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
   if (!photoGrid || !videoGrid) return;
 
   const renderedIds = new Set();
+  let orderedItems = [];
   let pollTimer = null;
   let firstLoadDone = false;
 
-  // Los archivos se suben con el nombre prefijado por su timestamp
-  // ({{$now.toMillis()}}_nombre) — lo usamos para ordenar sin depender de
-  // metadatos adicionales de Drive.
-  function uploadTimestamp(name) {
-    const match = /^(\d+)_/.exec(name || '');
+  // El id de cada archivo lleva su timestamp de subida como prefijo
+  // ({timestampMs}_{hex}) — lo usamos para ordenar sin depender de
+  // metadatos adicionales.
+  function uploadTimestamp(id) {
+    const match = /^(\d+)_/.exec(id || '');
     return match ? parseInt(match[1], 10) : 0;
   }
 
@@ -43,14 +44,9 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
     const tile = document.createElement('div');
     tile.className = 'gallery-tile';
     const img = document.createElement('img');
-    img.src = `https://drive.google.com/thumbnail?id=${item.id}&sz=w800`;
+    img.src = item.gridUrl;
     img.alt = item.name || '';
     img.loading = 'lazy';
-    // El endpoint de miniaturas aplica rate-limiting agresivo a peticiones
-    // anónimas repetidas; si falla, se cae a la vista completa del archivo.
-    img.addEventListener('error', () => {
-      img.src = `https://drive.google.com/uc?export=view&id=${item.id}`;
-    }, { once: true });
     img.addEventListener('click', () => openLightbox(item.id));
     tile.appendChild(img);
     return tile;
@@ -59,62 +55,84 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
   function createVideoTile(item) {
     const tile = document.createElement('div');
     tile.className = 'gallery-tile video-tile';
-
-    const iframe = document.createElement('iframe');
-    iframe.src = `https://drive.google.com/file/d/${item.id}/preview`;
-    iframe.allow = 'autoplay';
-    iframe.loading = 'lazy';
-    tile.appendChild(iframe);
-
-    // Drive dibuja un pequeño icono de "abrir en Drive" en la esquina
-    // superior derecha de su visor embebido; no podemos ocultarlo (es
-    // contenido de otro origen), pero sí interceptar el clic para que
-    // nadie salga de la página sin querer.
-    const shield = document.createElement('div');
-    shield.className = 'video-shield';
-    tile.appendChild(shield);
-
+    const img = document.createElement('img');
+    img.src = item.posterUrl;
+    img.alt = item.name || '';
+    img.loading = 'lazy';
+    img.addEventListener('click', () => openLightbox(item.id));
+    const playIcon = document.createElement('div');
+    playIcon.className = 'play-icon';
+    tile.appendChild(img);
+    tile.appendChild(playIcon);
     return tile;
   }
 
   function openLightbox(id) {
+    const list = orderedItems;
+    let index = list.findIndex(i => i.id === id);
+    if (index === -1) return;
     const overlay = document.createElement('div');
     overlay.className = 'gallery-lightbox';
-
-    const img = document.createElement('img');
-    img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
-    img.addEventListener('error', () => {
-      img.src = `https://drive.google.com/uc?export=view&id=${id}`;
-    }, { once: true });
-
+    const counter = document.createElement('div');
+    counter.className = 'lightbox-counter';
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'lightbox-nav lightbox-prev'; prevBtn.type = 'button'; prevBtn.setAttribute('aria-label', 'Anterior'); prevBtn.textContent = '‹';
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'lightbox-nav lightbox-next'; nextBtn.type = 'button'; nextBtn.setAttribute('aria-label', 'Siguiente'); nextBtn.textContent = '›';
     const close = document.createElement('button');
-    close.className = 'lightbox-close';
-    close.type = 'button';
-    close.setAttribute('aria-label', 'Cerrar');
-    close.textContent = '✕';
+    close.className = 'lightbox-close'; close.type = 'button'; close.setAttribute('aria-label', 'Cerrar'); close.textContent = '✕';
+    let mediaEl = null;
+
+    function renderMedia() {
+      if (mediaEl) { if (mediaEl.tagName === 'VIDEO') mediaEl.pause(); mediaEl.remove(); }
+      const item = list[index];
+      if (item.mimeType === 'video/mp4') {
+        mediaEl = document.createElement('video');
+        mediaEl.controls = true; mediaEl.playsInline = true; mediaEl.src = item.url; mediaEl.poster = item.posterUrl;
+      } else {
+        mediaEl = document.createElement('img');
+        mediaEl.src = item.url;
+      }
+      overlay.insertBefore(mediaEl, counter);
+      counter.textContent = `${index + 1} / ${list.length}`;
+    }
+
+    function go(delta) {
+      index = (index + delta + list.length) % list.length;
+      renderMedia();
+    }
 
     function closeLightbox() {
+      if (mediaEl && mediaEl.tagName === 'VIDEO') mediaEl.pause();
       overlay.classList.remove('is-open');
       document.removeEventListener('keydown', onKeydown);
       overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
     }
     function onKeydown(e) {
       if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') go(-1);
+      if (e.key === 'ArrowRight') go(1);
     }
 
-    overlay.appendChild(img);
+    overlay.appendChild(prevBtn);
+    overlay.appendChild(counter);
+    overlay.appendChild(nextBtn);
     overlay.appendChild(close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
+    prevBtn.addEventListener('click', (e) => { e.stopPropagation(); go(-1); });
+    nextBtn.addEventListener('click', (e) => { e.stopPropagation(); go(1); });
     close.addEventListener('click', closeLightbox);
     document.addEventListener('keydown', onKeydown);
     document.body.appendChild(overlay);
+    renderMedia();
     requestAnimationFrame(() => overlay.classList.add('is-open'));
   }
 
   function render(items) {
     const validItems = items.filter(item => item.mimeType && (item.mimeType.startsWith('image/') || item.mimeType.startsWith('video/')));
-    const photos = validItems.filter(item => item.mimeType.startsWith('image/')).sort((a, b) => uploadTimestamp(b.name) - uploadTimestamp(a.name));
-    const videos = validItems.filter(item => item.mimeType.startsWith('video/')).sort((a, b) => uploadTimestamp(b.name) - uploadTimestamp(a.name));
+    const photos = validItems.filter(item => item.mimeType.startsWith('image/')).sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id));
+    const videos = validItems.filter(item => item.mimeType.startsWith('video/')).sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id));
+    orderedItems = [...photos, ...videos];
 
     if (!firstLoadDone) {
       clearSkeletons(photoGrid);

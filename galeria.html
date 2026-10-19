@@ -158,18 +158,17 @@
 
   /* ── Rejillas ── */
   .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    align-items: start;
-    gap: 0.9rem;
+    column-count: 2;
+    column-gap: 0.9rem;
   }
-  /* auto-fit (no auto-fill): con pocos vídeos, las tarjetas se estiran para
-     llenar el ancho disponible en vez de dejar columnas vacías a la derecha. */
-  .gallery-grid.video-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  @media (min-width: 640px) { .gallery-grid { column-count: 3; } }
+  @media (min-width: 960px) { .gallery-grid { column-count: 4; } }
 
   .gallery-tile {
     position: relative;
-    aspect-ratio: 1 / 1;
+    display: block;
+    break-inside: avoid;
+    margin-bottom: 0.9rem;
     border-radius: 16px;
     overflow: hidden;
     background: var(--paper);
@@ -179,30 +178,36 @@
   }
   .gallery-tile:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(31, 51, 71, 0.18); }
   .gallery-tile img {
-    width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in;
+    width: 100%; height: auto; display: block; cursor: zoom-in;
     transition: transform 0.5s ease;
   }
   .gallery-tile:hover img { transform: scale(1.07); }
 
-  .video-tile { aspect-ratio: 16 / 9; }
-  .video-tile iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; background: var(--ink-deep); }
-  /* Tapa (con una viñeta, no un parche brusco) y bloquea el clic del icono
-     "abrir en Drive" que dibuja el propio visor embebido, para que nunca se
-     vea ni saque al invitado de la página. */
-  .video-shield {
-    position: absolute; top: 0; right: 0; width: 64px; height: 64px; z-index: 2;
-    background: radial-gradient(circle at top right, rgba(31,51,71,0.65) 0%, rgba(31,51,71,0.32) 45%, rgba(31,51,71,0) 72%);
+  /* ── Tarjeta de vídeo (póster + icono de reproducción) ── */
+  .video-tile { position: relative; }
+  .play-icon {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(246,247,245,0.92); box-shadow: 0 4px 14px rgba(31,51,71,0.35);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .play-icon::after {
+    content: ''; width: 0; height: 0; margin-left: 3px;
+    border-top: 8px solid transparent; border-bottom: 8px solid transparent;
+    border-left: 13px solid var(--gold);
   }
 
   /* ── Esqueletos de carga ── */
   .skeleton-tile {
-    aspect-ratio: 1 / 1;
+    height: 220px;
+    break-inside: avoid;
+    margin-bottom: 0.9rem;
     border-radius: 16px;
     background: linear-gradient(100deg, var(--mist) 28%, #fbfcfb 50%, var(--mist) 72%);
     background-size: 220% 100%;
     animation: shimmer 1.7s ease-in-out infinite;
   }
-  .skeleton-tile.video-skeleton { aspect-ratio: 16 / 10; }
   @keyframes shimmer {
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
@@ -246,6 +251,15 @@
     cursor: default;
   }
   .gallery-lightbox.is-open img { transform: scale(1); }
+  .gallery-lightbox video {
+    max-width: 100%; max-height: 100%;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transform: scale(0.94);
+    transition: transform 0.25s ease;
+    cursor: default;
+  }
+  .gallery-lightbox.is-open video { transform: scale(1); }
   .lightbox-close {
     position: absolute; top: 1.1rem; right: 1.2rem;
     width: 38px; height: 38px; border-radius: 50%;
@@ -256,10 +270,23 @@
     font-size: 1.1rem; line-height: 1;
     cursor: pointer;
   }
+  .lightbox-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);
+    color: #f6f7f5; font-size: 1.4rem; line-height: 1; cursor: pointer;
+  }
+  .lightbox-prev { left: 1rem; }
+  .lightbox-next { right: 1rem; }
+  .lightbox-counter {
+    position: absolute; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
+    font-size: 0.78rem; letter-spacing: 0.05em; color: #f6f7f5;
+    background: rgba(0,0,0,0.35); padding: 0.3rem 0.8rem; border-radius: 999px;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .live-dot, .skeleton-tile { animation: none !important; }
-    .gallery-tile, .tab-indicator, .gallery-lightbox, .gallery-lightbox img { transition: none !important; }
+    .gallery-tile, .tab-indicator, .gallery-lightbox, .gallery-lightbox img, .gallery-lightbox video { transition: none !important; }
   }
 </style>
 </head>
