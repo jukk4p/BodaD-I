@@ -966,8 +966,12 @@
 <script>
   // ── APERTURA ─────────────────────────────────────────
   document.body.style.overflow = 'hidden';
-  function openInvitation() {
-    document.getElementById('gate').classList.add('closed');
+  function openInvitation(instant) {
+    const gate = document.getElementById('gate');
+    // Al volver desde subir.html/galeria.html (?open=1) queremos la
+    // invitación al instante, sin esperar los 4s de la animación del sobre.
+    if (instant) gate.style.transition = 'none';
+    gate.classList.add('closed');
     document.body.style.overflow = '';
     const bgMusic = document.getElementById('bg-music');
     if (bgMusic && musicOn) {
@@ -975,10 +979,10 @@
     }
   }
 
-  // Si se llega desde subir.html (?open=1), saltar la portada y abrir directo.
+  // Si se llega desde subir.html o galeria.html (?open=1), saltar la portada y abrir directo.
   window.addEventListener('DOMContentLoaded', () => {
     if (new URLSearchParams(location.search).has('open')) {
-      openInvitation();
+      openInvitation(true);
     }
   });
 
