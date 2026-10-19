@@ -4,7 +4,7 @@ const paths = require('./paths');
 async function processPhoto({ id, ext }) {
   const original = paths.originalPath(id, ext);
   await runFfmpeg([
-    '-y', '-i', original,
+    '-y', '-protocol_whitelist', 'file', '-i', original,
     '-vf', "scale='min(1600,iw)':'min(1600,ih)':force_original_aspect_ratio=decrease",
     '-q:v', '3', '-update', '1',
     paths.gridPath(id)
@@ -13,7 +13,7 @@ async function processPhoto({ id, ext }) {
     '-v', 'error', '-select_streams', 'v:0',
     '-show_entries', 'stream=width,height',
     '-of', 'csv=s=x:p=0',
-    original
+    '-protocol_whitelist', 'file', '-i', original
   ]);
   const [width, height] = stdout.split('x').map(Number);
   return { width, height };

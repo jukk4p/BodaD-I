@@ -55,6 +55,14 @@ app.post('/upload', upload.single('data'), async (req, res) => {
 
 app.get('/list', (req, res) => res.json(manifest.readAll()));
 
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'file too large (max 50MB)' });
+  }
+  res.status(500).json({ error: err.message });
+});
+
 if (require.main === module) {
   const port = process.env.PORT || 3000;
   app.listen(port, () => console.log(`media-service listening on ${port}`));
