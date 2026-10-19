@@ -19,11 +19,11 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
   let pollTimer = null;
   let firstLoadDone = false;
 
-  // Los archivos se suben con el nombre prefijado por su timestamp
-  // ({{$now.toMillis()}}_nombre) — lo usamos para ordenar sin depender de
-  // metadatos adicionales de Drive.
-  function uploadTimestamp(name) {
-    const match = /^(\d+)_/.exec(name || '');
+  // El id de cada archivo lleva su timestamp de subida como prefijo
+  // ({timestampMs}_{hex}) — lo usamos para ordenar sin depender de
+  // metadatos adicionales.
+  function uploadTimestamp(id) {
+    const match = /^(\d+)_/.exec(id || '');
     return match ? parseInt(match[1], 10) : 0;
   }
 
@@ -43,14 +43,9 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
     const tile = document.createElement('div');
     tile.className = 'gallery-tile';
     const img = document.createElement('img');
-    img.src = `https://drive.google.com/thumbnail?id=${item.id}&sz=w800`;
+    img.src = item.gridUrl;
     img.alt = item.name || '';
     img.loading = 'lazy';
-    // El endpoint de miniaturas aplica rate-limiting agresivo a peticiones
-    // anónimas repetidas; si falla, se cae a la vista completa del archivo.
-    img.addEventListener('error', () => {
-      img.src = `https://drive.google.com/uc?export=view&id=${item.id}`;
-    }, { once: true });
     img.addEventListener('click', () => openLightbox(item.id));
     tile.appendChild(img);
     return tile;
@@ -113,8 +108,8 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
 
   function render(items) {
     const validItems = items.filter(item => item.mimeType && (item.mimeType.startsWith('image/') || item.mimeType.startsWith('video/')));
-    const photos = validItems.filter(item => item.mimeType.startsWith('image/')).sort((a, b) => uploadTimestamp(b.name) - uploadTimestamp(a.name));
-    const videos = validItems.filter(item => item.mimeType.startsWith('video/')).sort((a, b) => uploadTimestamp(b.name) - uploadTimestamp(a.name));
+    const photos = validItems.filter(item => item.mimeType.startsWith('image/')).sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id));
+    const videos = validItems.filter(item => item.mimeType.startsWith('video/')).sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id));
 
     if (!firstLoadDone) {
       clearSkeletons(photoGrid);
