@@ -1,0 +1,118 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "boda-daniel-irene-fotos",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "090c0956-40f9-4f52-877e-d5ad09b6d3dd",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        80,
+        80
+      ],
+      "webhookId": "9d18a37b-3960-472c-94f7-ece9d96427f5"
+    },
+    {
+      "parameters": {
+        "name": "={{ $now.toMillis() }}_{{ $binary.data.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1U4DQ-R31V3xS9I75ogKoojuWSQFUmg-g",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "530f8122-67a8-43a3-a15a-727d684cb30d",
+      "name": "Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        320,
+        80
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "gHj8pHKM3R1FQhnm",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true } }}",
+        "options": {}
+      },
+      "id": "0ddc0ae3-2254-41f4-8f4c-8b662e70cc00",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: 'upload_failed' } }}",
+        "options": {}
+      },
+      "id": "43add168-59d6-4614-a2fe-2bf3580cfa23",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        560,
+        192
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "51329d20bb80350250f8daf63ccbc18bb069669cdf5828f7cc7c1caad1fde496"
+  }
+}
