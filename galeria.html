@@ -158,18 +158,17 @@
 
   /* ── Rejillas ── */
   .gallery-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    align-items: start;
-    gap: 0.9rem;
+    column-count: 2;
+    column-gap: 0.9rem;
   }
-  /* auto-fit (no auto-fill): con pocos vídeos, las tarjetas se estiran para
-     llenar el ancho disponible en vez de dejar columnas vacías a la derecha. */
-  .gallery-grid.video-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  @media (min-width: 640px) { .gallery-grid { column-count: 3; } }
+  @media (min-width: 960px) { .gallery-grid { column-count: 4; } }
 
   .gallery-tile {
     position: relative;
-    aspect-ratio: 1 / 1;
+    display: block;
+    break-inside: avoid;
+    margin-bottom: 0.9rem;
     border-radius: 16px;
     overflow: hidden;
     background: var(--paper);
@@ -179,30 +178,21 @@
   }
   .gallery-tile:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(31, 51, 71, 0.18); }
   .gallery-tile img {
-    width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in;
+    width: 100%; height: auto; display: block; cursor: zoom-in;
     transition: transform 0.5s ease;
   }
   .gallery-tile:hover img { transform: scale(1.07); }
 
-  .video-tile { aspect-ratio: 16 / 9; }
-  .video-tile iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: block; background: var(--ink-deep); }
-  /* Tapa (con una viñeta, no un parche brusco) y bloquea el clic del icono
-     "abrir en Drive" que dibuja el propio visor embebido, para que nunca se
-     vea ni saque al invitado de la página. */
-  .video-shield {
-    position: absolute; top: 0; right: 0; width: 64px; height: 64px; z-index: 2;
-    background: radial-gradient(circle at top right, rgba(31,51,71,0.65) 0%, rgba(31,51,71,0.32) 45%, rgba(31,51,71,0) 72%);
-  }
-
   /* ── Esqueletos de carga ── */
   .skeleton-tile {
-    aspect-ratio: 1 / 1;
+    height: 220px;
+    break-inside: avoid;
+    margin-bottom: 0.9rem;
     border-radius: 16px;
     background: linear-gradient(100deg, var(--mist) 28%, #fbfcfb 50%, var(--mist) 72%);
     background-size: 220% 100%;
     animation: shimmer 1.7s ease-in-out infinite;
   }
-  .skeleton-tile.video-skeleton { aspect-ratio: 16 / 10; }
   @keyframes shimmer {
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
