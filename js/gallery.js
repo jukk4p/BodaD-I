@@ -54,21 +54,15 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
   function createVideoTile(item) {
     const tile = document.createElement('div');
     tile.className = 'gallery-tile video-tile';
-
-    const iframe = document.createElement('iframe');
-    iframe.src = `https://drive.google.com/file/d/${item.id}/preview`;
-    iframe.allow = 'autoplay';
-    iframe.loading = 'lazy';
-    tile.appendChild(iframe);
-
-    // Drive dibuja un pequeño icono de "abrir en Drive" en la esquina
-    // superior derecha de su visor embebido; no podemos ocultarlo (es
-    // contenido de otro origen), pero sí interceptar el clic para que
-    // nadie salga de la página sin querer.
-    const shield = document.createElement('div');
-    shield.className = 'video-shield';
-    tile.appendChild(shield);
-
+    const img = document.createElement('img');
+    img.src = item.posterUrl;
+    img.alt = item.name || '';
+    img.loading = 'lazy';
+    img.addEventListener('click', () => openLightbox(item.id));
+    const playIcon = document.createElement('div');
+    playIcon.className = 'play-icon';
+    tile.appendChild(img);
+    tile.appendChild(playIcon);
     return tile;
   }
 

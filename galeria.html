@@ -183,6 +183,21 @@
   }
   .gallery-tile:hover img { transform: scale(1.07); }
 
+  /* ── Tarjeta de vídeo (póster + icono de reproducción) ── */
+  .video-tile { position: relative; }
+  .play-icon {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(246,247,245,0.92); box-shadow: 0 4px 14px rgba(31,51,71,0.35);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .play-icon::after {
+    content: ''; width: 0; height: 0; margin-left: 3px;
+    border-top: 8px solid transparent; border-bottom: 8px solid transparent;
+    border-left: 13px solid var(--gold);
+  }
+
   /* ── Esqueletos de carga ── */
   .skeleton-tile {
     height: 220px;
