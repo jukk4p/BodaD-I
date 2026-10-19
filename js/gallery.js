@@ -16,6 +16,7 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
   if (!photoGrid || !videoGrid) return;
 
   const renderedIds = new Set();
+  let orderedItems = [];
   let pollTimer = null;
   let firstLoadDone = false;
 
@@ -67,36 +68,62 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
   }
 
   function openLightbox(id) {
+    let index = orderedItems.findIndex(i => i.id === id);
+    if (index === -1) return;
     const overlay = document.createElement('div');
     overlay.className = 'gallery-lightbox';
-
-    const img = document.createElement('img');
-    img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
-    img.addEventListener('error', () => {
-      img.src = `https://drive.google.com/uc?export=view&id=${id}`;
-    }, { once: true });
-
+    const counter = document.createElement('div');
+    counter.className = 'lightbox-counter';
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'lightbox-nav lightbox-prev'; prevBtn.type = 'button'; prevBtn.setAttribute('aria-label', 'Anterior'); prevBtn.textContent = '‹';
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'lightbox-nav lightbox-next'; nextBtn.type = 'button'; nextBtn.setAttribute('aria-label', 'Siguiente'); nextBtn.textContent = '›';
     const close = document.createElement('button');
-    close.className = 'lightbox-close';
-    close.type = 'button';
-    close.setAttribute('aria-label', 'Cerrar');
-    close.textContent = '✕';
+    close.className = 'lightbox-close'; close.type = 'button'; close.setAttribute('aria-label', 'Cerrar'); close.textContent = '✕';
+    let mediaEl = null;
+
+    function renderMedia() {
+      if (mediaEl) { if (mediaEl.tagName === 'VIDEO') mediaEl.pause(); mediaEl.remove(); }
+      const item = orderedItems[index];
+      if (item.mimeType === 'video/mp4') {
+        mediaEl = document.createElement('video');
+        mediaEl.controls = true; mediaEl.playsInline = true; mediaEl.src = item.url; mediaEl.poster = item.posterUrl;
+      } else {
+        mediaEl = document.createElement('img');
+        mediaEl.src = item.url;
+      }
+      overlay.insertBefore(mediaEl, counter);
+      counter.textContent = `${index + 1} / ${orderedItems.length}`;
+    }
+
+    function go(delta) {
+      index = (index + delta + orderedItems.length) % orderedItems.length;
+      renderMedia();
+    }
 
     function closeLightbox() {
+      if (mediaEl && mediaEl.tagName === 'VIDEO') mediaEl.pause();
       overlay.classList.remove('is-open');
       document.removeEventListener('keydown', onKeydown);
       overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
     }
     function onKeydown(e) {
       if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') go(-1);
+      if (e.key === 'ArrowRight') go(1);
     }
 
-    overlay.appendChild(img);
+    overlay.appendChild(prevBtn);
+    overlay.appendChild(counter);
+    overlay.appendChild(nextBtn);
     overlay.appendChild(close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeLightbox(); });
+    prevBtn.addEventListener('click', (e) => { e.stopPropagation(); go(-1); });
+    nextBtn.addEventListener('click', (e) => { e.stopPropagation(); go(1); });
     close.addEventListener('click', closeLightbox);
     document.addEventListener('keydown', onKeydown);
     document.body.appendChild(overlay);
+    renderMedia();
     requestAnimationFrame(() => overlay.classList.add('is-open'));
   }
 
@@ -104,6 +131,7 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
     const validItems = items.filter(item => item.mimeType && (item.mimeType.startsWith('image/') || item.mimeType.startsWith('video/')));
     const photos = validItems.filter(item => item.mimeType.startsWith('image/')).sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id));
     const videos = validItems.filter(item => item.mimeType.startsWith('video/')).sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id));
+    orderedItems = [...photos, ...videos];
 
     if (!firstLoadDone) {
       clearSkeletons(photoGrid);
