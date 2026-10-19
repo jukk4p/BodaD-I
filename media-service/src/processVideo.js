@@ -3,7 +3,7 @@ const paths = require('./paths');
 
 async function processVideo({ id, ext }) {
   const original = paths.originalPath(id, ext);
-  await runFfmpeg(['-y', '-i', original, '-vframes', '1', '-q:v', '3', paths.posterPath(id)]);
+  await runFfmpeg(['-y', '-i', original, '-vframes', '1', '-q:v', '3', '-update', '1', paths.posterPath(id)]);
   await runFfmpeg([
     '-y', '-i', original,
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
