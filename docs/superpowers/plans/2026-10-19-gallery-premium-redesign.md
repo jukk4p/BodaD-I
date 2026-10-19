@@ -14,7 +14,7 @@
 
 - Wedding date lock: `galleryActive`/`uploadActive` compare `Date.now()` against `new Date('2026-10-24T00:00:00').getTime()` — this mechanism and timestamp must not change.
 - Upload limits unchanged: 50MB max file size, `image/*` and `video/*` accepted (enforced client-side today in `js/upload.js`; this plan does not touch that file). `media-service` additionally enforces the same 50MB limit server-side (defense in depth, via `multer`'s `limits.fileSize`).
-- Filenames must not embed the guest's original filename in the stored path; the id is `{timestampMs}_{random8hex}` (generated with `crypto.randomBytes`, not `Math.random`) so paths stay non-guessable. The original filename is preserved only inside the manifest's `name` field (JSON value, not a path, and never passed through a shell).
+- Filenames must not embed the guest's original filename in the stored path; the id is `{timestampMs}_{random32hex}` (16 bytes / 128 bits via `crypto.randomBytes(16)`, not `Math.random` — bumped from an initial 4-byte/32-bit version per a security review mid-implementation, see the ledger) so paths stay non-guessable. The original filename is preserved only inside the manifest's `name` field (JSON value, not a path, and never passed through a shell).
 - `/uploads/` must not allow directory listing — already satisfied: nginx's `autoindex` defaults to `off` and `Boda-Dani` has no custom config overriding it (verified 2026-10-19, no action needed).
 - Disk budget: VPS-2, 73GB total, 51GB free / 31% used confirmed 2026-10-19 — stay well inside this.
 - CPU budget: shared VPS (n8n + Postgres + ~10 other Coolify services). `media-service` processes one upload at a time (Express's default single-process request handling already serializes this per-process; do not add worker pools/queues).
@@ -59,16 +59,16 @@ uploads/
   manifest.jsonl             # append-only, one JSON object per line
 ```
 
-`id` = `{Date.now() in ms}_{8 random hex chars via crypto.randomBytes(4).toString('hex')}`, computed once per upload and reused for every derivative filename.
+`id` = `{Date.now() in ms}_{32 random hex chars via crypto.randomBytes(16).toString('hex')}`, computed once per upload and reused for every derivative filename. (Originally specified as 4 random bytes/8 hex chars; bumped to 16 bytes/128 bits during Task 3 per a security review — 32 bits was judged brute-forceable against a predictable public URL path with no rate limiting.)
 
 One manifest line, photo:
 ```json
-{"id":"1792424443123_a1b2c3d4","name":"IMG_0231.jpg","mimeType":"image/jpeg","width":1440,"height":1920,"url":"https://bodadaniyirene.ivangonzalez.cloud/uploads/originals/1792424443123_a1b2c3d4.jpg","gridUrl":"https://bodadaniyirene.ivangonzalez.cloud/uploads/grid/1792424443123_a1b2c3d4.jpg"}
+{"id":"1792424443123_a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4","name":"IMG_0231.jpg","mimeType":"image/jpeg","width":1440,"height":1920,"url":"https://bodadaniyirene.ivangonzalez.cloud/uploads/originals/1792424443123_a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4.jpg","gridUrl":"https://bodadaniyirene.ivangonzalez.cloud/uploads/grid/1792424443123_a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4.jpg"}
 ```
 
 One manifest line, video (`mimeType` is always `video/mp4` post-transcode, regardless of the original container):
 ```json
-{"id":"1792424443123_f7e6d5c4","name":"VID_0098.mov","mimeType":"video/mp4","width":1080,"height":1920,"url":"https://bodadaniyirene.ivangonzalez.cloud/uploads/video/1792424443123_f7e6d5c4.mp4","posterUrl":"https://bodadaniyirene.ivangonzalez.cloud/uploads/posters/1792424443123_f7e6d5c4.jpg"}
+{"id":"1792424443123_f7e6d5c4f7e6d5c4f7e6d5c4f7e6d5c4","name":"VID_0098.mov","mimeType":"video/mp4","width":1080,"height":1920,"url":"https://bodadaniyirene.ivangonzalez.cloud/uploads/video/1792424443123_f7e6d5c4f7e6d5c4f7e6d5c4f7e6d5c4.mp4","posterUrl":"https://bodadaniyirene.ivangonzalez.cloud/uploads/posters/1792424443123_f7e6d5c4f7e6d5c4f7e6d5c4f7e6d5c4.jpg"}
 ```
 
 `GET /list` on `media-service` (and therefore the `boda-daniel-irene-galeria` webhook) responds with a JSON array of these objects — `js/gallery.js`'s existing `render(items)` filter/sort/dedupe structure is preserved; only field names and tile-building change (same as the original plan — unaffected by the architecture change).
