@@ -4,46 +4,51 @@
 
 **Goal:** Replace the Google-Drive-backed live gallery with media served from the project's own VPS, and rebuild `galeria.html`/`js/gallery.js` as an "Editorial Masonry" layout with real aspect ratios, a native video player, and a navigable lightbox.
 
-**Architecture:** Two n8n workflows (`Boda Daniel & Irene - Subida de fotos a Drive`, id `UWHftSKj8sNiaOjt`; `Boda Daniel & Irene - Listado de fotos`, id `lHim7mpMSvvhKiwD`) are edited node-by-node in place — the Drive upload/search nodes are replaced with filesystem writes, `ffmpeg`-based processing, and an append-only manifest file on a Coolify-managed persistent volume shared between the `n8n` service and the `Boda-Dani` static site. The frontend (`galeria.html`, `js/gallery.js`) is rewritten to consume the new manifest shape directly (no more Drive URL construction) and to render a CSS-columns masonry grid.
+**Architecture:** A new small Node.js/Express service (`media-service`), deployed as its own Coolify-managed container on the internal Docker network only (no public domain), does all file processing (`ffmpeg`/`ffprobe` via `child_process.spawn` with explicit argument arrays — never shell string interpolation) and owns the shared persistent volume. The two n8n workflows become thin HTTP-forwarding proxies (Webhook → HTTP Request → Respond) — this replaced an earlier design that used n8n's "Execute Command" node directly, discovered mid-implementation to be disabled by default since n8n 2.0 for security reasons (a public-webhook-facing instance is exactly the case n8n warns about). The frontend (`galeria.html`, `js/gallery.js`) is rewritten to consume `media-service`'s JSON shape directly and to render a CSS-columns masonry grid.
 
-**Tech Stack:** n8n (Webhook / Code / Execute Command / Write Binary File nodes), `ffmpeg` for image/video processing, Coolify-managed Docker volumes, nginx (`Boda-Dani`'s static image) for serving, vanilla HTML/CSS/JS frontend (no build step, no test framework present in this repo).
+**Tech Stack:** Node.js 20 + Express + `multer` (multipart parsing) for `media-service`; `ffmpeg`/`ffprobe` (installed in the service's own Docker image) for image/video processing; Node's built-in `node:test` for unit tests on the deterministic (non-ffmpeg) logic; n8n (Webhook / HTTP Request / Respond to Webhook nodes only — no Code or Execute Command nodes); Coolify-managed Docker volumes and networking; nginx (`Boda-Dani`'s static image) for serving; vanilla HTML/CSS/JS frontend (no build step, no test framework present in this repo).
 
 **Spec:** `docs/superpowers/specs/2026-10-19-gallery-premium-redesign-design.md`
 
 ## Global Constraints
 
 - Wedding date lock: `galleryActive`/`uploadActive` compare `Date.now()` against `new Date('2026-10-24T00:00:00').getTime()` — this mechanism and timestamp must not change.
-- Upload limits unchanged: 50MB max file size, `image/*` and `video/*` accepted (enforced client-side today in `js/upload.js`; this plan does not touch that file).
-- Filenames must not embed the guest's original filename in the stored path; the id is `{timestampMs}_{random8hex}` so paths stay non-guessable. The original filename is preserved only inside the manifest's `name` field (JSON string, not a path).
-- `/uploads/` must not allow directory listing (`autoindex off` in nginx).
+- Upload limits unchanged: 50MB max file size, `image/*` and `video/*` accepted (enforced client-side today in `js/upload.js`; this plan does not touch that file). `media-service` additionally enforces the same 50MB limit server-side (defense in depth, via `multer`'s `limits.fileSize`).
+- Filenames must not embed the guest's original filename in the stored path; the id is `{timestampMs}_{random8hex}` (generated with `crypto.randomBytes`, not `Math.random`) so paths stay non-guessable. The original filename is preserved only inside the manifest's `name` field (JSON value, not a path, and never passed through a shell).
+- `/uploads/` must not allow directory listing — already satisfied: nginx's `autoindex` defaults to `off` and `Boda-Dani` has no custom config overriding it (verified 2026-10-19, no action needed).
 - Disk budget: VPS-2, 73GB total, 51GB free / 31% used confirmed 2026-10-19 — stay well inside this.
-- CPU budget: shared VPS (n8n + Postgres + ~10 other Coolify services). Process one upload at a time; no batch/background re-processing jobs.
+- CPU budget: shared VPS (n8n + Postgres + ~10 other Coolify services). `media-service` processes one upload at a time (Express's default single-process request handling already serializes this per-process; do not add worker pools/queues).
 - Keep existing visual tokens from `galeria.html`'s `:root` (`--ink`, `--ink-deep`, `--gold`, etc.), fonts (Fraunces/Archivo), and all existing Spanish copy not explicitly changed by a task.
 - Both n8n workflows keep their existing webhook paths (`boda-daniel-irene-fotos`, `boda-daniel-irene-galeria`) and stay `Published` — `subir.html`/`js/upload.js`/`js/gallery.js` hardcode these URLs and are not being changed to point elsewhere.
+- `media-service` is reached by n8n over the Coolify-internal Docker network by service/container name — it gets **no public domain/FQDN**. It is not meant to be reachable from the public internet at all.
+- `media-service`'s shared volume mount: host path `/data/boda-daniel-irene/uploads` (same as `Boda-Dani` and `n8n`'s existing mounts — already configured, see Task 1) → container path `/data/uploads` (same convention n8n already uses).
+- `media-service` builds public URLs for manifest entries from a `PUBLIC_BASE_URL` environment variable, defaulting to `https://bodadaniyirene.ivangonzalez.cloud/uploads` if unset.
 - Do not delete the Google Drive folder, credential, or the old Drive nodes' configuration history — out of scope, no cleanup required there.
+- Do not re-run Task 1 Steps 1-6 (persistent volumes on `Boda-Dani` and `n8n`, nginx autoindex check, `Boda-Dani` redeploy) — already done and verified; see the ledger. Task 1 Step 7 (confirm `ffmpeg` in the n8n container) is superseded — `ffmpeg` now lives in `media-service`'s own image instead (Task 2).
 
 ## Review Focus
 
-- **A near-50MB video upload**: `ffmpeg` transcoding must complete without the webhook timing out or leaving a partial/corrupt file behind if it fails midway. (Task 4)
-- **iPhone photos/videos (HEIC stills, HEVC `.mov`)**: these are the majority real-world input per the design doc's "mayormente con el móvil" — processing must handle them, not just generic JPEG/MP4. (Tasks 3, 4)
-- **Two guests uploading at the same moment**: concurrent `ffmpeg` Execute Command runs on the shared VPS must not be left unbounded — the plan must state what protects the other co-hosted services. (Task 4)
-- **A failed/partial upload** (guest loses signal mid-upload): no entry should appear in `manifest.jsonl` unless the original file and all derivatives were written successfully — a partial entry would show a broken tile to every guest. (Task 5)
-- **The manifest growing to hundreds of lines over the wedding day**: the listing workflow re-reads and the frontend re-polls every 20s — response time must stay reasonable as the file grows across a single day's uploads. (Task 6)
+- **A near-50MB video upload**: `ffmpeg` transcoding must complete without the HTTP request timing out or leaving a partial/corrupt file behind if it fails midway. (Task 5, Task 7)
+- **iPhone photos/videos (HEIC stills, HEVC `.mov`)**: these are the majority real-world input per the design doc's "mayormente con el móvil" — processing must handle them, not just generic JPEG/MP4. (Tasks 4, 5)
+- **Two guests uploading at the same moment**: Node's single-threaded event loop combined with `spawn`-based subprocesses already serializes CPU-heavy work reasonably, but two concurrent `ffmpeg` child processes can still both run — confirm this doesn't starve the shared VPS. (Task 7)
+- **A failed/partial upload** (guest loses signal mid-upload, or `ffmpeg` fails): no entry should appear in `manifest.jsonl` unless the original file and all derivatives were written successfully, and partial derivative files should be cleaned up — a partial entry would show a broken tile to every guest. (Task 7)
+- **The manifest growing to hundreds of lines over the wedding day**: `GET /list` re-reads the file on every call and the frontend re-polls every 20s — response time must stay reasonable as the file grows across a single day's uploads. (Task 6)
 
 ---
 
 ## File Structure
 
+- Create: `media-service/package.json`, `media-service/Dockerfile`, `media-service/src/server.js`, `media-service/src/id.js`, `media-service/src/paths.js`, `media-service/src/ffmpeg.js`, `media-service/src/processPhoto.js`, `media-service/src/processVideo.js`, `media-service/src/manifest.js`
+- Create: `media-service/test/id.test.js`, `media-service/test/paths.test.js`, `media-service/test/manifest.test.js`, `media-service/test/ffmpeg.test.js`
 - Modify: `js/gallery.js` — data layer (`fetchAndRender`, `render`), tile creation (`createPhotoTile`, `createVideoTile`), lightbox (`openLightbox`).
 - Modify: `galeria.html` — grid CSS (masonry), tile CSS (real aspect ratio, video poster + play icon), lightbox CSS (nav arrows + counter), lightbox markup additions.
 - n8n workflow `Boda Daniel & Irene - Subida de fotos a Drive` (id `UWHftSKj8sNiaOjt`) — edited in the n8n editor, no local file. Renamed to `Boda Daniel & Irene - Subida de fotos`.
 - n8n workflow `Boda Daniel & Irene - Listado de fotos` (id `lHim7mpMSvvhKiwD`) — edited in the n8n editor, no local file.
-- Create: `n8n-backups/boda-daniel-irene-subida.json`, `n8n-backups/boda-daniel-irene-listado.json` — exported workflow JSON, committed for rollback.
-- Coolify: persistent storage config on the `Boda-Dani` app and the `n8n` service (GUI config, no local file) + `Boda-Dani`'s Custom Nginx Configuration field.
+- Coolify: new Application `media-service` (Dockerfile build pack, base directory `/media-service`, internal network only, persistent storage) — GUI config, no local file.
 
-## Data Contract (pins Tasks 2–7 together)
+## Data Contract (pins Tasks 2–11 together)
 
-Shared volume layout, mounted at host path `/data/boda-daniel-irene/uploads` in both the `n8n` service (container path `/data/uploads`, read-write) and the `Boda-Dani` app (container path `/usr/share/nginx/html/uploads`, read-only is fine):
+Shared volume layout, mounted at host path `/data/boda-daniel-irene/uploads` — already mounted in `n8n` (container path `/data/uploads`) and `Boda-Dani` (container path `/usr/share/nginx/html/uploads`, read-only is fine); `media-service` mounts the same host path at container path `/data/uploads` too (Task 8):
 
 ```
 uploads/
@@ -54,7 +59,7 @@ uploads/
   manifest.jsonl             # append-only, one JSON object per line
 ```
 
-`id` = `{Date.now() in ms}_{8 random hex chars}`, computed once per upload and reused for every derivative filename.
+`id` = `{Date.now() in ms}_{8 random hex chars via crypto.randomBytes(4).toString('hex')}`, computed once per upload and reused for every derivative filename.
 
 One manifest line, photo:
 ```json
@@ -66,246 +71,679 @@ One manifest line, video (`mimeType` is always `video/mp4` post-transcode, regar
 {"id":"1792424443123_f7e6d5c4","name":"VID_0098.mov","mimeType":"video/mp4","width":1080,"height":1920,"url":"https://bodadaniyirene.ivangonzalez.cloud/uploads/video/1792424443123_f7e6d5c4.mp4","posterUrl":"https://bodadaniyirene.ivangonzalez.cloud/uploads/posters/1792424443123_f7e6d5c4.jpg"}
 ```
 
-The listing webhook (`boda-daniel-irene-galeria`) responds with a JSON array of these objects — same outer shape (`Array<Item>`) as today, so `js/gallery.js`'s existing `render(items)` filter/sort/dedupe structure is preserved; only field names and tile-building change.
+`GET /list` on `media-service` (and therefore the `boda-daniel-irene-galeria` webhook) responds with a JSON array of these objects — `js/gallery.js`'s existing `render(items)` filter/sort/dedupe structure is preserved; only field names and tile-building change (same as the original plan — unaffected by the architecture change).
+
+`POST /upload` on `media-service` accepts `multipart/form-data` with a single file field named `data` (matching the field name the existing Webhook/`subir.html` flow already uses end to end) and responds with one JSON object in the same shape as a manifest line on success (HTTP 200/201), or `{ "error": "<message>" }` on failure (HTTP 4xx/5xx).
 
 ---
 
-### Task 1: Infraestructura — volumen persistente, ruta estática, backup de workflows
+### Task 1: Infraestructura — ya completada
+
+**Status: done.** Persistent volumes mounted on `Boda-Dani` and `n8n` (host path `/data/boda-daniel-irene/uploads`), `n8n` workflow backups committed to `n8n-backups/`, nginx `autoindex off` confirmed as the default with no override needed, `Boda-Dani` redeployed. See the ledger for exact commits. Step 7 (confirm `ffmpeg` in the n8n container) is superseded by Task 2 — `ffmpeg` now lives in `media-service`'s own image.
+
+No further action in this task. Proceed to Task 2.
+
+---
+
+### Task 2: `media-service` — esqueleto del proyecto
 
 **Files:**
-- Create: `n8n-backups/boda-daniel-irene-subida.json`
-- Create: `n8n-backups/boda-daniel-irene-listado.json`
-- Coolify GUI: `Boda-Dani` app → Persistent Storage, Advanced (Custom Nginx Configuration); `n8n` service → Persistent Storage.
+- Create: `media-service/package.json`
+- Create: `media-service/src/server.js`
+- Create: `media-service/Dockerfile`
 
 **Interfaces:**
-- Produces: the shared volume at host path `/data/boda-daniel-irene/uploads`, writable from `n8n` at `/data/uploads`, served read-only by `Boda-Dani` at `/usr/share/nginx/html/uploads` → public URL prefix `https://bodadaniyirene.ivangonzalez.cloud/uploads/`. All later tasks assume this exists.
+- Produces: an Express app listening on `process.env.PORT || 3000`, with `GET /health` returning `200 { "status": "ok" }`. Every later task adds routes/middleware to this same `app` instance exported from `src/server.js`.
 
-- [ ] **Step 1: Export both n8n workflows**
+- [ ] **Step 1: Write `media-service/package.json`**
 
-In the n8n editor, open each workflow → `...` menu → Download. Save as `n8n-backups/boda-daniel-irene-subida.json` (from `UWHftSKj8sNiaOjt`) and `n8n-backups/boda-daniel-irene-listado.json` (from `lHim7mpMSvvhKiwD`) in the repo.
-
-- [ ] **Step 2: Commit the backups**
-
-```bash
-git add n8n-backups/boda-daniel-irene-subida.json n8n-backups/boda-daniel-irene-listado.json
-git commit -m "chore: backup n8n workflows before Drive-to-VPS media migration"
+```json
+{
+  "name": "media-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
 ```
 
-- [ ] **Step 3: Add a persistent volume to the `Boda-Dani` app in Coolify**
+- [ ] **Step 2: Write `media-service/src/server.js`**
 
-Coolify → `Boda-Dani` → Persistent Storage → Add: source `/data/boda-daniel-irene/uploads` (host path), destination `/usr/share/nginx/html/uploads` (container path).
+```js
+const express = require('express');
+const app = express();
 
-- [ ] **Step 4: Add the same host path as a volume on the `n8n` service in Coolify**
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-Coolify → `n8n` service → Persistent Storage → Add: source `/data/boda-daniel-irene/uploads` (same host path as Step 3), destination `/data/uploads` (container path n8n will read/write).
+if (require.main === module) {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => console.log(`media-service listening on ${port}`));
+}
 
-- [ ] **Step 5: Disable directory listing for `/uploads/`**
+module.exports = { app };
+```
 
-In `Boda-Dani` → Configuration → Custom Nginx Configuration, add a `location /uploads/ { autoindex off; }` block (or confirm the generated default config already has `autoindex off` globally — Coolify's default nginx config typically does; verify rather than assume).
+- [ ] **Step 3: Install dependencies and verify locally**
 
-- [ ] **Step 6: Redeploy both services and verify the mount**
+Run: `cd media-service && npm install`
+Then: `node src/server.js &` and `curl http://localhost:3000/health`
+Expected: `{"status":"ok"}`. Stop the background process afterward.
 
-Redeploy `Boda-Dani` and restart `n8n` from Coolify so the new volumes attach. From n8n, use a one-off Execute Command node (delete it after) to run `echo "ok" > /data/uploads/healthcheck.txt`, then confirm `https://bodadaniyirene.ivangonzalez.cloud/uploads/healthcheck.txt` returns `ok` in a browser. Delete `healthcheck.txt` afterward (via another Execute Command) and remove the throwaway node.
+- [ ] **Step 4: Write `media-service/Dockerfile`**
 
-- [ ] **Step 7: Confirm `ffmpeg` is available in the n8n container**
+```dockerfile
+FROM node:20-alpine
+RUN apk add --no-cache ffmpeg
+WORKDIR /app
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY src ./src
+ENV PORT=3000
+EXPOSE 3000
+CMD ["node", "src/server.js"]
+```
 
-Add a throwaway Execute Command node running `ffmpeg -version`. If it fails (command not found), note this — Tasks 3 and 4 need `ffmpeg` on the same host n8n's Execute Command runs on; if missing, the fix (custom n8n image with `ffmpeg` installed, or an init script) must land before Task 3 starts. Delete the throwaway node once confirmed either way.
+- [ ] **Step 5: Commit**
+
+```bash
+git add media-service/package.json media-service/package-lock.json media-service/src/server.js media-service/Dockerfile
+git commit -m "feat(media-service): project skeleton with health check"
+```
 
 ---
 
-### Task 2: Workflow de subida — escribir el original con id no adivinable
+### Task 3: `media-service` — utilidades puras (id, rutas)
+
+**Files:**
+- Create: `media-service/src/id.js`
+- Create: `media-service/src/paths.js`
+- Test: `media-service/test/id.test.js`
+- Test: `media-service/test/paths.test.js`
+
+**Interfaces:**
+- Produces: `generateId(): string` (matches `/^\d+_[0-9a-f]{8}$/`); `sanitizeExt(filename: string): string` (lowercase alphanumeric only, falls back to `'bin'` if empty); `paths.UPLOAD_ROOT: string` (from `process.env.UPLOAD_ROOT`, default `/data/uploads`); `paths.originalPath(id, ext)`, `paths.gridPath(id)`, `paths.posterPath(id)`, `paths.videoPath(id)`, `paths.manifestPath()` — all return absolute path strings under `UPLOAD_ROOT`.
+
+- [ ] **Step 1: Write the failing tests for `id.js`**
+
+```js
+// media-service/test/id.test.js
+const { test } = require('node:test');
+const assert = require('node:assert');
+const { generateId, sanitizeExt } = require('../src/id');
+
+test('generateId matches timestamp_hex8 shape', () => {
+  const id = generateId();
+  assert.match(id, /^\d+_[0-9a-f]{8}$/);
+});
+
+test('generateId produces distinct ids', () => {
+  assert.notStrictEqual(generateId(), generateId());
+});
+
+test('sanitizeExt lowercases and strips non-alphanumerics', () => {
+  assert.strictEqual(sanitizeExt('IMG_0231.JPG'), 'jpg');
+  assert.strictEqual(sanitizeExt('clip.mov'), 'mov');
+});
+
+test('sanitizeExt falls back to bin for no extension', () => {
+  assert.strictEqual(sanitizeExt('noext'), 'bin');
+  assert.strictEqual(sanitizeExt(''), 'bin');
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `cd media-service && node --test test/id.test.js`
+Expected: FAIL (`../src/id` not found)
+
+- [ ] **Step 3: Implement `media-service/src/id.js`**
+
+```js
+const crypto = require('crypto');
+
+function generateId() {
+  return `${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+}
+
+function sanitizeExt(filename) {
+  const raw = (filename || '').split('.').pop() || '';
+  const clean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return clean || 'bin';
+}
+
+module.exports = { generateId, sanitizeExt };
+```
+
+- [ ] **Step 4: Run to verify it passes**
+
+Run: `node --test test/id.test.js`
+Expected: PASS, 4/4
+
+- [ ] **Step 5: Write the failing tests for `paths.js`**
+
+```js
+// media-service/test/paths.test.js
+const { test } = require('node:test');
+const assert = require('node:assert');
+
+test('path helpers build correct absolute paths under UPLOAD_ROOT', () => {
+  process.env.UPLOAD_ROOT = '/tmp/uploads-test';
+  delete require.cache[require.resolve('../src/paths')];
+  const paths = require('../src/paths');
+  assert.strictEqual(paths.originalPath('abc_123', 'jpg'), '/tmp/uploads-test/originals/abc_123.jpg');
+  assert.strictEqual(paths.gridPath('abc_123'), '/tmp/uploads-test/grid/abc_123.jpg');
+  assert.strictEqual(paths.posterPath('abc_123'), '/tmp/uploads-test/posters/abc_123.jpg');
+  assert.strictEqual(paths.videoPath('abc_123'), '/tmp/uploads-test/video/abc_123.mp4');
+  assert.strictEqual(paths.manifestPath(), '/tmp/uploads-test/manifest.jsonl');
+});
+```
+
+- [ ] **Step 6: Run to verify it fails**
+
+Run: `node --test test/paths.test.js`
+Expected: FAIL (`../src/paths` not found)
+
+- [ ] **Step 7: Implement `media-service/src/paths.js`**
+
+```js
+const path = require('path');
+
+const UPLOAD_ROOT = process.env.UPLOAD_ROOT || '/data/uploads';
+
+const originalPath = (id, ext) => path.join(UPLOAD_ROOT, 'originals', `${id}.${ext}`);
+const gridPath = (id) => path.join(UPLOAD_ROOT, 'grid', `${id}.jpg`);
+const posterPath = (id) => path.join(UPLOAD_ROOT, 'posters', `${id}.jpg`);
+const videoPath = (id) => path.join(UPLOAD_ROOT, 'video', `${id}.mp4`);
+const manifestPath = () => path.join(UPLOAD_ROOT, 'manifest.jsonl');
+
+module.exports = { UPLOAD_ROOT, originalPath, gridPath, posterPath, videoPath, manifestPath };
+```
+
+- [ ] **Step 8: Run to verify it passes**
+
+Run: `node --test test/`
+Expected: PASS, all tests green (id + paths)
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add media-service/src/id.js media-service/src/paths.js media-service/test/id.test.js media-service/test/paths.test.js
+git commit -m "feat(media-service): id generation and path helpers"
+```
+
+---
+
+### Task 4: `media-service` — wrapper de ffmpeg y rama de fotos
+
+**Files:**
+- Create: `media-service/src/ffmpeg.js`
+- Create: `media-service/src/processPhoto.js`
+- Test: `media-service/test/ffmpeg.test.js`
+
+**Interfaces:**
+- Consumes: `paths` from Task 3.
+- Produces: `runCommand(cmd: string, args: string[]): Promise<{ stdout: string }>` (rejects with an `Error` whose message includes `stderr` on non-zero exit — **never builds a shell string**, always `spawn(cmd, args)` with `args` as a literal array); `processPhoto({ id, ext }): Promise<{ width: number, height: number }>` — reads `paths.originalPath(id, ext)`, writes `paths.gridPath(id)`, returns real pixel dimensions of the original.
+
+- [ ] **Step 1: Write the failing test for `runCommand`'s wrapper behavior**
+
+Use a real, always-available command (not `ffmpeg`) so this test runs in any environment:
+
+```js
+// media-service/test/ffmpeg.test.js
+const { test } = require('node:test');
+const assert = require('node:assert');
+const { runCommand } = require('../src/ffmpeg');
+
+test('runCommand resolves with stdout on success', async () => {
+  const { stdout } = await runCommand('node', ['-e', 'process.stdout.write("hello")']);
+  assert.strictEqual(stdout, 'hello');
+});
+
+test('runCommand rejects on non-zero exit', async () => {
+  await assert.rejects(() => runCommand('node', ['-e', 'process.exit(1)']));
+});
+
+test('runCommand never invokes a shell (argument with shell metacharacters is passed literally)', async () => {
+  const { stdout } = await runCommand('node', ['-e', 'console.log(process.argv[1])', '$(echo pwned)']);
+  assert.match(stdout, /\$\(echo pwned\)/);
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `cd media-service && node --test test/ffmpeg.test.js`
+Expected: FAIL (`../src/ffmpeg` not found)
+
+- [ ] **Step 3: Implement `media-service/src/ffmpeg.js`**
+
+```js
+const { spawn } = require('child_process');
+
+function runCommand(cmd, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { shell: false });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (d) => { stdout += d; });
+    child.stderr.on('data', (d) => { stderr += d; });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) resolve({ stdout: stdout.trim() });
+      else reject(new Error(`${cmd} exited ${code}: ${stderr.trim()}`));
+    });
+  });
+}
+
+const runFfmpeg = (args) => runCommand('ffmpeg', args);
+const runFfprobe = (args) => runCommand('ffprobe', args);
+
+module.exports = { runCommand, runFfmpeg, runFfprobe };
+```
+
+`{ shell: false }` (Node's default for `spawn`, stated explicitly) is what makes shell injection impossible regardless of what the guest's filename contains — arguments are passed to the OS process directly, never interpreted by `/bin/sh`.
+
+- [ ] **Step 4: Run to verify it passes**
+
+Run: `node --test test/ffmpeg.test.js`
+Expected: PASS, 3/3
+
+- [ ] **Step 5: Implement `media-service/src/processPhoto.js`**
+
+```js
+const { runFfmpeg, runFfprobe } = require('./ffmpeg');
+const paths = require('./paths');
+
+async function processPhoto({ id, ext }) {
+  const original = paths.originalPath(id, ext);
+  await runFfmpeg([
+    '-y', '-i', original,
+    '-vf', "scale='min(1600,iw)':'min(1600,ih)':force_original_aspect_ratio=decrease",
+    '-q:v', '3',
+    paths.gridPath(id)
+  ]);
+  const { stdout } = await runFfprobe([
+    '-v', 'error', '-select_streams', 'v:0',
+    '-show_entries', 'stream=width,height',
+    '-of', 'csv=s=x:p=0',
+    original
+  ]);
+  const [width, height] = stdout.split('x').map(Number);
+  return { width, height };
+}
+
+module.exports = { processPhoto };
+```
+
+This step has no automated test here (it needs a real image file and a working `ffmpeg`/`ffprobe` on the machine running the test, which isn't guaranteed in every environment) — Task 7's manual verification step covers it end to end with real test photos, including a HEIC one per the Review Focus. If the HEIC case fails there, come back and adjust this function (e.g. a `magick`/`heif-convert` pre-step) before Task 7 is considered done.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add media-service/src/ffmpeg.js media-service/src/processPhoto.js media-service/test/ffmpeg.test.js
+git commit -m "feat(media-service): ffmpeg wrapper and photo processing"
+```
+
+---
+
+### Task 5: `media-service` — rama de vídeo
+
+**Files:**
+- Create: `media-service/src/processVideo.js`
+
+**Interfaces:**
+- Consumes: `runFfmpeg`/`runFfprobe` from Task 4, `paths` from Task 3.
+- Produces: `processVideo({ id, ext }): Promise<{ width: number, height: number }>` — writes `paths.posterPath(id)` and `paths.videoPath(id)`.
+
+- [ ] **Step 1: Implement `media-service/src/processVideo.js`**
+
+```js
+const { runFfmpeg, runFfprobe } = require('./ffmpeg');
+const paths = require('./paths');
+
+async function processVideo({ id, ext }) {
+  const original = paths.originalPath(id, ext);
+  await runFfmpeg(['-y', '-i', original, '-vframes', '1', '-q:v', '3', paths.posterPath(id)]);
+  await runFfmpeg([
+    '-y', '-i', original,
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
+    '-vf', "scale='min(1920,iw)':'min(1920,ih)':force_original_aspect_ratio=decrease",
+    '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
+    paths.videoPath(id)
+  ]);
+  const { stdout } = await runFfprobe([
+    '-v', 'error', '-select_streams', 'v:0',
+    '-show_entries', 'stream=width,height',
+    '-of', 'csv=s=x:p=0',
+    paths.videoPath(id)
+  ]);
+  const [width, height] = stdout.split('x').map(Number);
+  return { width, height };
+}
+
+module.exports = { processVideo };
+```
+
+`-preset veryfast` / `-crf 23` is the time/CPU-vs-quality tradeoff point for the shared VPS under the 5-day deadline — don't raise quality at the cost of significantly longer processing without re-checking the CPU constraint. Dimensions are probed from the transcoded output (not the original) so they match what's actually served.
+
+No automated test here for the same reason as Task 4 Step 5 (needs real `ffmpeg` + a real video file) — covered by Task 7's manual verification, including the near-50MB and HEVC `.mov` cases per the Review Focus.
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add media-service/src/processVideo.js
+git commit -m "feat(media-service): video processing (poster + transcode)"
+```
+
+---
+
+### Task 6: `media-service` — manifiesto
+
+**Files:**
+- Create: `media-service/src/manifest.js`
+- Test: `media-service/test/manifest.test.js`
+
+**Interfaces:**
+- Consumes: `paths.manifestPath()` from Task 3.
+- Produces: `appendLine(item: object): void` (synchronous append, one JSON line); `readAll(): object[]` (returns `[]` if the file doesn't exist yet, skips any line that fails to parse).
+
+- [ ] **Step 1: Write the failing tests**
+
+```js
+// media-service/test/manifest.test.js
+const { test } = require('node:test');
+const assert = require('node:assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+function freshManifest() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'manifest-test-'));
+  process.env.UPLOAD_ROOT = dir;
+  delete require.cache[require.resolve('../src/paths')];
+  delete require.cache[require.resolve('../src/manifest')];
+  return require('../src/manifest');
+}
+
+test('readAll returns [] when manifest does not exist yet', () => {
+  const manifest = freshManifest();
+  assert.deepStrictEqual(manifest.readAll(), []);
+});
+
+test('appendLine then readAll round-trips an item', () => {
+  const manifest = freshManifest();
+  manifest.appendLine({ id: '1_a', name: 'x.jpg' });
+  manifest.appendLine({ id: '2_b', name: 'y.mp4' });
+  assert.deepStrictEqual(manifest.readAll(), [{ id: '1_a', name: 'x.jpg' }, { id: '2_b', name: 'y.mp4' }]);
+});
+
+test('readAll skips a malformed line without failing the rest', () => {
+  const manifest = freshManifest();
+  manifest.appendLine({ id: '1_a' });
+  fs.appendFileSync(require('../src/paths').manifestPath(), 'not json\n');
+  manifest.appendLine({ id: '2_b' });
+  assert.deepStrictEqual(manifest.readAll(), [{ id: '1_a' }, { id: '2_b' }]);
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `cd media-service && node --test test/manifest.test.js`
+Expected: FAIL (`../src/manifest` not found)
+
+- [ ] **Step 3: Implement `media-service/src/manifest.js`**
+
+```js
+const fs = require('fs');
+const paths = require('./paths');
+
+function appendLine(item) {
+  fs.mkdirSync(require('path').dirname(paths.manifestPath()), { recursive: true });
+  fs.appendFileSync(paths.manifestPath(), JSON.stringify(item) + '\n');
+}
+
+function readAll() {
+  if (!fs.existsSync(paths.manifestPath())) return [];
+  const raw = fs.readFileSync(paths.manifestPath(), 'utf8');
+  return raw.split('\n').filter(Boolean).map((line) => {
+    try { return JSON.parse(line); } catch { return null; }
+  }).filter(Boolean);
+}
+
+module.exports = { appendLine, readAll };
+```
+
+- [ ] **Step 4: Run to verify it passes**
+
+Run: `node --test test/`
+Expected: PASS, all tests green (id + paths + ffmpeg + manifest)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add media-service/src/manifest.js media-service/test/manifest.test.js
+git commit -m "feat(media-service): manifest append/read"
+```
+
+---
+
+### Task 7: `media-service` — endpoints `POST /upload` y `GET /list`
+
+**Files:**
+- Modify: `media-service/src/server.js`
+
+**Interfaces:**
+- Consumes: everything from Tasks 3-6 (`id`, `paths`, `processPhoto`, `processVideo`, `manifest`).
+- Produces: the two public HTTP endpoints per the Data Contract — this is what the n8n workflows (Tasks 9-10) call.
+
+- [ ] **Step 1: Wire `POST /upload` in `media-service/src/server.js`**
+
+```js
+const express = require('express');
+const multer = require('multer');
+const fs = require('fs');
+const { generateId, sanitizeExt } = require('./id');
+const paths = require('./paths');
+const { processPhoto } = require('./processPhoto');
+const { processVideo } = require('./processVideo');
+const manifest = require('./manifest');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://bodadaniyirene.ivangonzalez.cloud/uploads';
+
+const app = express();
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+app.post('/upload', upload.single('data'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'missing file field "data"' });
+  const id = generateId();
+  const ext = sanitizeExt(req.file.originalname);
+  const isImage = req.file.mimetype.startsWith('image/');
+  const isVideo = req.file.mimetype.startsWith('video/');
+  if (!isImage && !isVideo) return res.status(400).json({ error: 'unsupported mimeType' });
+
+  const originalPath = paths.originalPath(id, ext);
+  try {
+    fs.mkdirSync(require('path').dirname(originalPath), { recursive: true });
+    fs.writeFileSync(originalPath, req.file.buffer);
+
+    let item;
+    if (isImage) {
+      const { width, height } = await processPhoto({ id, ext });
+      item = {
+        id, name: req.file.originalname, mimeType: req.file.mimetype, width, height,
+        url: `${PUBLIC_BASE_URL}/originals/${id}.${ext}`,
+        gridUrl: `${PUBLIC_BASE_URL}/grid/${id}.jpg`
+      };
+    } else {
+      const { width, height } = await processVideo({ id, ext });
+      item = {
+        id, name: req.file.originalname, mimeType: 'video/mp4', width, height,
+        url: `${PUBLIC_BASE_URL}/video/${id}.mp4`,
+        posterUrl: `${PUBLIC_BASE_URL}/posters/${id}.jpg`
+      };
+    }
+    manifest.appendLine(item);
+    res.status(201).json(item);
+  } catch (err) {
+    [paths.originalPath(id, ext), paths.gridPath(id), paths.posterPath(id), paths.videoPath(id)]
+      .forEach((p) => { try { fs.unlinkSync(p); } catch {} });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/list', (req, res) => res.json(manifest.readAll()));
+
+if (require.main === module) {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => console.log(`media-service listening on ${port}`));
+}
+
+module.exports = { app };
+```
+
+The `catch` block deletes every derivative path unconditionally (unlink on a non-existent file is wrapped in its own try/catch and ignored) — this is what guarantees the Review Focus requirement: a failed upload leaves no manifest line and no orphaned files.
+
+- [ ] **Step 2: Manual verification — start the service locally**
+
+Run: `cd media-service && UPLOAD_ROOT=/tmp/media-test node src/server.js`
+
+- [ ] **Step 3: Manual verification — photo upload, including HEIC**
+
+```bash
+curl -F data=@test.jpg http://localhost:3000/upload
+```
+Expected: `201` with a JSON item matching the Data Contract's photo shape; `/tmp/media-test/originals/` and `/tmp/media-test/grid/` contain the files; `manifest.jsonl` has one new line.
+
+Repeat with a HEIC test file (the default format on recent iPhones, and the realistic majority case per the design doc). If it fails, fix `processPhoto` now (Task 4 Step 5's note) rather than deferring.
+
+- [ ] **Step 4: Manual verification — video upload, including near-50MB and a concurrency check**
+
+```bash
+curl -F data=@test.mp4 http://localhost:3000/upload
+```
+Expected: `201`, item matches the video shape, `posters/` and `video/` populated, transcoded file plays when opened directly. Repeat with a video close to the 50MB limit (30-45MB, a minute or more of 1080p) and time the response — must complete, not hang. Then fire two uploads back-to-back (two terminal tabs) and confirm both succeed with distinct, uncorrupted outputs.
+
+- [ ] **Step 5: Manual verification — failure path produces no manifest line**
+
+```bash
+curl -F data=@/dev/null;type=video/mp4 http://localhost:3000/upload
+```
+(or any deliberately corrupt/truncated video `ffmpeg` will reject). Expected: non-2xx response, and `manifest.jsonl`'s line count is unchanged from before this request — confirms the Review Focus guarantee.
+
+- [ ] **Step 6: Manual verification — `GET /list` and a growth check**
+
+```bash
+curl http://localhost:3000/list
+```
+Expected: JSON array containing the items from Steps 3-4. Then append ~100 synthetic valid JSON lines to `manifest.jsonl` directly (copy one real line in a loop, changing `id`) and re-request `/list` — response should stay well under a second (Review Focus: manifest growth over the wedding day). Remove the synthetic lines afterward, stop the local server.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add media-service/src/server.js
+git commit -m "feat(media-service): wire POST /upload and GET /list"
+```
+
+---
+
+### Task 8: Despliegue de `media-service` en Coolify
+
+**Files:** none (Coolify GUI configuration).
+
+**Interfaces:**
+- Produces: `media-service` running and reachable from the `n8n` container over the internal Docker network at some hostname — record the exact hostname/port here once deployed, Tasks 9-10 need it verbatim.
+
+- [ ] **Step 1: Create a new Coolify Application for `media-service`**
+
+Project `Web` (same as `Boda-Dani`) or a new project — either is fine since this isn't a non-goal constraint. Source: the same git repo, Base Directory `/media-service`, Build Pack: Dockerfile. Do **not** set a public domain/FQDN for it (Global Constraint: internal-only).
+
+- [ ] **Step 2: Add the persistent volume**
+
+Same pattern as Task 1: Directory Mount, source `/data/boda-daniel-irene/uploads` (same host path already used by `Boda-Dani` and `n8n`) → destination `/data/uploads`.
+
+- [ ] **Step 3: Ensure it joins the same internal network as `n8n`**
+
+Enable "Connect To Predefined Network" (same setting already seen enabled on the `n8n` and `Boda-Dani` services) so `n8n`'s containers can resolve `media-service` by name.
+
+- [ ] **Step 4: Deploy and verify**
+
+Deploy the application. Once running, determine the internal hostname Coolify assigned (typically the Coolify service/container name) — verify reachability by adding a throwaway Execute-Command-equivalent check is not available (that node is disabled — see the spec), so instead verify via a throwaway n8n HTTP Request node in a scratch workflow: `GET http://<internal-hostname>:3000/health`, confirm `{"status":"ok"}`, then delete/archive the scratch workflow. Record the working internal URL here in the plan (edit this step with the actual value) for Tasks 9-10 to use verbatim.
+
+---
+
+### Task 9: n8n — workflow de subida simplificado
 
 **Files:**
 - n8n workflow `Boda Daniel & Irene - Subida de fotos a Drive` (id `UWHftSKj8sNiaOjt`), rename to `Boda Daniel & Irene - Subida de fotos`.
 
 **Interfaces:**
-- Consumes: Webhook node's existing binary property `data` (field name already configured, unchanged), `$binary.data.fileName`, `$binary.data.mimeType`.
-- Produces: workflow variable/Code-node output `{ id, ext, mimeType, name }` available to Tasks 3–5 via n8n's standard item-passing (each downstream node reads `$json.id` etc. from this Code node's output); the original file written to `/data/uploads/originals/{id}.{ext}`.
+- Consumes: `media-service`'s internal URL from Task 8.
+- Produces: the public webhook `boda-daniel-irene-fotos` forwards uploads to `media-service` and relays its response.
 
-- [ ] **Step 1: Add a Code node right after Webhook, named "Build id"**
+- [ ] **Step 1: Delete the Google Drive node**
 
-JavaScript body computes and returns one item:
-```js
-const id = `${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
-const originalName = $binary.data.fileName || 'archivo';
-const ext = (originalName.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-return [{ json: { id, ext, mimeType: $binary.data.mimeType, name: originalName }, binary: { data: $binary.data } }];
-```
+- [ ] **Step 2: Add an HTTP Request node, named "Reenviar a media-service", between Webhook and the Respond nodes**
 
-- [ ] **Step 2: Add a Write Binary File node, named "Save original", after "Build id"**
+Method: POST. URL: `http://<media-service internal hostname from Task 8>:3000/upload`. Body: "Send Binary Data" / multipart form-data, binary property `data`, form field name `data` (matching what `media-service` expects). On Error: "Continue to Error Output" (so a non-2xx response routes to Respond Error instead of stopping the workflow).
 
-File Name (expression): `/data/uploads/originals/{{ $json.id }}.{{ $json.ext }}`. Input Binary Field: `data`.
+- [ ] **Step 3: Rewire**
 
-- [ ] **Step 3: Remove the old "Google Drive" (upload) node and rewire**
-
-Delete the Google Drive node. Connect "Save original"'s output to wherever "Success"/"Respond OK" previously received the Google Drive node's `Success` output (this task does not change Respond OK/Respond Error's own configuration, only what feeds them — final rewiring to Respond OK happens in Task 5 once the full chain exists; for now, temporarily connect "Save original" directly to Respond OK so the workflow is runnable and testable in isolation).
+Webhook → "Reenviar a media-service" → (success) Respond OK, (error) Respond Error. Leave Respond OK/Respond Error's own configuration untouched.
 
 - [ ] **Step 4: Test with a manual execution**
 
-Use n8n's "Listen for test event" on the Webhook node, POST a small test image to the test webhook URL with field name `data` (e.g. via `curl -F data=@test.jpg <test-url>`), then confirm in the n8n editor that "Save original" ran and that the file exists at the expected path (check via the Task 1 technique: a throwaway Execute Command `ls /data/uploads/originals/`, or confirm the file is reachable at `https://bodadaniyirene.ivangonzalez.cloud/uploads/originals/{id}.{ext}`).
+Use "Listen for test event", `curl -F data=@test.jpg <test-url>`, confirm `media-service` received it (check its logs or the resulting file under `/data/uploads/originals/` via the Task 8 verification technique) and the webhook returned success.
 
-- [ ] **Step 5: Save the workflow**
+- [ ] **Step 5: Publish/save**
 
-Save in the n8n editor (n8n auto-persists; no git commit for this step since the workflow has no local file yet — Task 1's exported JSON is the pre-migration backup, not kept in sync node-by-node).
-
----
-
-### Task 3: Workflow de subida — rama de fotos (miniatura + dimensiones)
-
-**Files:**
-- Same n8n workflow as Task 2.
-
-**Interfaces:**
-- Consumes: `{ id, ext, mimeType, name }` from Task 2's "Build id" node; original file at `/data/uploads/originals/{id}.{ext}`.
-- Produces: `/data/uploads/grid/{id}.jpg` when `mimeType` starts with `image/`; a Code node output adding `{ width, height }` (pixels) to the item for Task 5's manifest line.
-
-- [ ] **Step 1: Add an IF node, named "¿Es foto?", after "Save original"**
-
-Condition: `{{ $json.mimeType.startsWith('image/') }}` is `true`.
-
-- [ ] **Step 2: On the true branch, add an Execute Command node, named "Generar miniatura"**
-
-Command (expression-built): `ffmpeg -y -i /data/uploads/originals/{{ $json.id }}.{{ $json.ext }} -vf "scale='min(1600,iw)':'min(1600,ih)':force_original_aspect_ratio=decrease" -q:v 3 /data/uploads/grid/{{ $json.id }}.jpg`. This also implicitly handles HEIC input if the n8n host's `ffmpeg` build includes `libheif` — if Task 1 Step 7's `ffmpeg -version` check shows no HEIC support, this step must instead shell out to `magick`/`heif-convert` first; record which path was used.
-
-- [ ] **Step 3: Add an Execute Command node, named "Leer dimensiones"**
-
-Command: `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 /data/uploads/originals/{{ $('Build id').item.json.id }}.{{ $('Build id').item.json.ext }}` — note the `$('Build id').item.json...` reference, not `$json`: this node follows "Generar miniatura" (an Execute Command node), whose own output replaces `$json` with `{ stdout, stderr, exitCode }`, so `id`/`ext` are no longer directly on `$json` here. Output is a single `WIDTHxHEIGHT` token on stdout (`-of csv=s=x:p=0`).
-
-- [ ] **Step 4: Add a Code node, named "Adjuntar dimensiones (foto)"**
-
-Parses the previous node's stdout and merges onto the item:
-```js
-const [width, height] = $input.first().json.stdout.trim().split('x').map(Number);
-return [{ json: { ...$('Build id').first().json, width, height } }];
-```
-
-- [ ] **Step 5: Test with a manual execution, including a HEIC photo**
-
-Re-run the Task 2 test image through the workflow, then repeat with a HEIC photo (the default format on recent iPhones, and the realistic majority case per the design doc) — export or find a `.heic` test file rather than skipping this. Confirm `/data/uploads/grid/{id}.jpg` exists and is reachable over HTTPS for both, and that "Adjuntar dimensiones (foto)"'s output item has numeric `width`/`height` matching each test image's real dimensions. If the HEIC case fails, resolve it now (per Step 2's `libheif`/`heif-convert` note) rather than deferring — this is the dominant real-world input per the Review Focus.
+Confirm still `Published`, webhook path `boda-daniel-irene-fotos` unchanged.
 
 ---
 
-### Task 4: Workflow de subida — rama de vídeo (póster + transcodificación + dimensiones)
-
-**Files:**
-- Same n8n workflow as Task 2.
-
-**Interfaces:**
-- Consumes: same as Task 3, on the IF node's false branch (`mimeType` starts with `video/`).
-- Produces: `/data/uploads/posters/{id}.jpg`, `/data/uploads/video/{id}.mp4`; a Code node output adding `{ width, height }` for Task 5.
-
-- [ ] **Step 1: On "¿Es foto?"'s false branch, add an Execute Command node, named "Generar póster"**
-
-Command: `ffmpeg -y -i /data/uploads/originals/{{ $json.id }}.{{ $json.ext }} -vframes 1 -q:v 3 /data/uploads/posters/{{ $json.id }}.jpg`. This node directly follows the IF node's false branch, so `$json` is still "Build id"'s output here — the node-reference form (needed in Steps 2–3 below) isn't required yet.
-
-- [ ] **Step 2: Add an Execute Command node, named "Transcodificar vídeo"**
-
-Command: `ffmpeg -y -i /data/uploads/originals/{{ $('Build id').item.json.id }}.{{ $('Build id').item.json.ext }} -c:v libx264 -preset veryfast -crf 23 -vf "scale='min(1920,iw)':'min(1920,ih)':force_original_aspect_ratio=decrease" -c:a aac -b:a 128k -movflags +faststart /data/uploads/video/{{ $('Build id').item.json.id }}.mp4`. Uses the `$('Build id').item.json...` reference because this node follows "Generar póster" (an Execute Command node), whose output replaces `$json` with `{ stdout, stderr, exitCode }`. `-preset veryfast` and `-crf 23` are the time/CPU-vs-quality tradeoff point for the shared VPS under the 5-day deadline — do not raise quality at the cost of significantly longer processing without re-checking the CPU constraint.
-
-- [ ] **Step 3: Add an Execute Command node, named "Leer dimensiones (vídeo)"**
-
-Command: `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 /data/uploads/video/{{ $('Build id').item.json.id }}.mp4` (same node-reference reasoning as Step 2; probes the transcoded output, not the original, so dimensions match what's actually served).
-
-- [ ] **Step 4: Add a Code node, named "Adjuntar dimensiones (vídeo)"**
-
-Same parsing pattern as Task 3 Step 4, merged onto `{ ...$('Build id').first().json, mimeType: 'video/mp4', width, height }` — note `mimeType` is overwritten to `video/mp4` here per the Data Contract, regardless of the original container.
-
-- [ ] **Step 5: Guard against concurrent heavy processing**
-
-In n8n → Settings (or this workflow's Settings tab) confirm/set the webhook's execution mode so uploads process one at a time rather than spawning unbounded parallel `ffmpeg` processes (n8n's default queue concurrency for a single workflow is effectively sequential per execution unless explicitly parallelized — confirm this is the case rather than assuming; if not, add a Wait/semaphore pattern). This exists to satisfy the Global Constraint on shared-VPS CPU usage.
-
-- [ ] **Step 6: Test with a manual execution, including a near-50MB video and a concurrency check**
-
-POST a short test video first (`curl -F data=@test.mp4 <test-url>`), then repeat with a video close to the 50MB client-side limit (e.g. 30-45MB, a minute or more of 1080p footage) and time how long the webhook response takes — it must complete, not time out, and must not leave a partial/corrupt file in `/data/uploads/video/` if anything in the chain fails (cross-check with Task 5 Step 4's failure-path test). Then fire two test videos back-to-back (two terminal tabs, near-simultaneous `curl`) and confirm both produce distinct, uncorrupted `{id}.mp4` outputs — their different `id`s prevent filename collisions, but this confirms Step 5's sequential-processing assumption actually holds under the n8n instance's real configuration. For all cases, confirm `/data/uploads/posters/{id}.jpg` and `/data/uploads/video/{id}.mp4` exist and are reachable over HTTPS, that the transcoded video plays (open the URL directly in a browser tab), and that "Adjuntar dimensiones (vídeo)" produced correct numeric `width`/`height`.
-
----
-
-### Task 5: Workflow de subida — escribir en el manifiesto y responder
-
-**Files:**
-- Same n8n workflow as Task 2.
-
-**Interfaces:**
-- Consumes: the merged item from Task 3's "Adjuntar dimensiones (foto)" or Task 4's "Adjuntar dimensiones (vídeo)" (both branches rejoin here).
-- Produces: one appended line in `/data/uploads/manifest.jsonl` per successful upload; final wiring to the existing Respond OK / Respond Error nodes.
-
-- [ ] **Step 1: Add a Merge node (or let both IF branches point to one shared next node) named "Construir línea de manifiesto" (Code node)**
-
-```js
-const d = $json;
-const base = { id: d.id, name: d.name, mimeType: d.mimeType, width: d.width, height: d.height };
-const root = 'https://bodadaniyirene.ivangonzalez.cloud/uploads/';
-let extra;
-if (d.mimeType.startsWith('image/')) {
-  extra = { url: `${root}originals/${d.id}.${d.ext}`, gridUrl: `${root}grid/${d.id}.jpg` };
-} else {
-  extra = { url: `${root}video/${d.id}.mp4`, posterUrl: `${root}posters/${d.id}.jpg` };
-}
-return [{ json: { ...base, ...extra, line: JSON.stringify({ ...base, ...extra }) } }];
-```
-Note photos keep `d.ext` in their original-file URL (Task 2's write path), consistent with the Data Contract's photo example.
-
-- [ ] **Step 2: Add an Execute Command node, named "Añadir al manifiesto"**
-
-Command (expression): ``echo '{{ $json.line.replace(/'/g, "'\\''") }}' >> /data/uploads/manifest.jsonl``. The replace guards against single quotes inside `name` breaking the shell command.
-
-- [ ] **Step 3: Rewire to Respond OK / Respond Error**
-
-Connect "Añadir al manifiesto"'s success output to the existing Respond OK node (undoing Task 2 Step 3's temporary direct wiring). Any node in the chain (Save original, ffmpeg steps, manifest append) that errors should route to the existing Respond Error node — use n8n's per-node "On Error: Continue to Error Output" setting on each new node added in Tasks 2–5 so a failure anywhere in the chain reaches Respond Error instead of silently stopping, and so that a failure never results in a manifest line being written for an incomplete upload (Review Focus item: no ghost entries).
-
-- [ ] **Step 4: Test end-to-end with both a photo and a video, and a deliberate failure**
-
-Re-run both Task 3 and Task 4's test files through the full chain. Confirm `manifest.jsonl` gained exactly one well-formed JSON line per upload, matching the Data Contract shapes, and that the webhook's HTTP response is the same success/error shape `js/upload.js` already expects (it only checks `response.ok`, so this just needs to still return 2xx on success). Then deliberately break one upload (e.g. POST a corrupt/truncated video that `ffmpeg` will fail on) and confirm **no line is appended to `manifest.jsonl`** for it — this is the Review Focus guarantee that a partial upload never produces a broken tile in the gallery.
-
-- [ ] **Step 5: Publish/save the workflow**
-
-Confirm the workflow is still `Published` with the original webhook path `boda-daniel-irene-fotos` intact.
-
----
-
-### Task 6: Workflow de listado — leer el manifiesto en vez de Drive
+### Task 10: n8n — workflow de listado simplificado
 
 **Files:**
 - n8n workflow `Boda Daniel & Irene - Listado de fotos` (id `lHim7mpMSvvhKiwD`).
 
 **Interfaces:**
-- Produces: the webhook `boda-daniel-irene-galeria` responds with a JSON array of Data-Contract items — this is what `js/gallery.js` (Task 7) consumes.
+- Produces: the public webhook `boda-daniel-irene-galeria` forwards to `media-service`'s `GET /list` and relays its body — this is what `js/gallery.js` (Task 11) consumes.
 
-- [ ] **Step 1: Add an Execute Command node, named "Leer manifiesto", right after Webhook**
+- [ ] **Step 1: Delete the "Search files and folders" (Google Drive) node**
 
-Command: `cat /data/uploads/manifest.jsonl 2>/dev/null || true` (the `|| true` so a not-yet-existing file doesn't error out before the first upload of the day).
+- [ ] **Step 2: Add an HTTP Request node, named "Consultar media-service"**
 
-- [ ] **Step 2: Add a Code node, named "Parsear manifiesto"**
+Method: GET. URL: `http://<media-service internal hostname from Task 8>:3000/list`.
 
-```js
-const raw = $input.first().json.stdout || '';
-const items = raw.split('\n').filter(Boolean).map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(Boolean);
-return [{ json: { items } }];
-```
-The `try/catch` per line protects against a line that was only partially flushed to disk if this read ever races a concurrent write — one malformed line is dropped rather than failing the whole response.
+- [ ] **Step 3: Rewire**
 
-- [ ] **Step 3: Remove the old "Search files and folders" (Google Drive) node and rewire**
+Webhook → "Consultar media-service" → "Respond to Webhook", with Respond to Webhook configured to return the HTTP Request node's response body directly (array passthrough).
 
-Delete it. Connect Webhook → "Leer manifiesto" → "Parsear manifiesto" → the existing "Respond to Webhook" node, configuring Respond to Webhook's response body to `{{ $json.items }}` (an array), matching the Data Contract.
+- [ ] **Step 4: Test with a manual execution**
 
-- [ ] **Step 4: Test with a manual execution, including a growth check**
+GET the test webhook URL, confirm the response is the same JSON array `media-service`'s own `/list` returns.
 
-GET the test webhook URL (or "Listen for test event" + browser request). Confirm the response is a JSON array containing the items written by Task 5's two test uploads, with all Data-Contract fields present and correctly typed. Then temporarily append ~100 synthetic valid JSON lines to `manifest.jsonl` (copy-paste one real line, adjusting `id`, in a loop) and re-request the webhook — response time should stay well under a second, since this design deliberately avoids re-probing media on every poll (Review Focus: manifest growth over the wedding day). Remove the synthetic lines afterward.
+- [ ] **Step 5: Publish/save**
 
-- [ ] **Step 5: Publish/save the workflow**
-
-Confirm the workflow is still `Published` with the original webhook path `boda-daniel-irene-galeria` intact.
+Confirm still `Published`, webhook path `boda-daniel-irene-galeria` unchanged.
 
 ---
 
-### Task 7: Frontend — capa de datos de `js/gallery.js`
+### Task 11: Frontend — capa de datos de `js/gallery.js`
 
 **Files:**
 - Modify: `js/gallery.js`
 
 **Interfaces:**
 - Consumes: the JSON array described in the Data Contract, from `GALLERY_WEBHOOK_URL` (unchanged URL).
-- Produces: `render(items)` populates `photoGrid`/`videoGrid` with tiles built by Task 9's `createPhotoTile`/`createVideoTile` (this task defines their new call signature; Task 9 implements their bodies).
+- Produces: `render(items)` populates `photoGrid`/`videoGrid` with tiles built by Task 13's `createPhotoTile`/`createVideoTile` (this task defines their new call signature; Task 13 implements their bodies).
 
 - [ ] **Step 1: Replace `uploadTimestamp(name)` with `uploadTimestamp(id)`**
 
@@ -317,21 +755,21 @@ Change `uploadTimestamp(b.name)` / `uploadTimestamp(a.name)` to `uploadTimestamp
 
 - [ ] **Step 3: Update `createPhotoTile(item)`'s image source**
 
-Replace the `https://drive.google.com/thumbnail?id=...` construction with `item.gridUrl` directly; remove the `error` listener's fallback to `drive.google.com/uc?export=view` (no longer applicable — if `gridUrl` 404s there is no Drive fallback to fall back to, so leave `img.src = item.gridUrl` unguarded). The existing `img.addEventListener('click', () => openLightbox(item.id))` call stays as-is — Task 10 changes what `openLightbox` does internally with that `id`, not how it's called.
+Replace the `https://drive.google.com/thumbnail?id=...` construction with `item.gridUrl` directly; remove the `error` listener's fallback to `drive.google.com/uc?export=view` (no longer applicable — if `gridUrl` 404s there is no Drive fallback to fall back to, so leave `img.src = item.gridUrl` unguarded). The existing `img.addEventListener('click', () => openLightbox(item.id))` call stays as-is — Task 14 changes what `openLightbox` does internally with that `id`, not how it's called.
 
 - [ ] **Step 4: Manual verification**
 
-With Task 6 already returning real data from the two test uploads, open `galeria.html` on production (per this project's established pattern, Drive/webhook quirks mean production is the reliable place to test, not `localhost`), confirm the two test tiles render with correct images in `#photo-grid`/`#video-grid` (ugly/un-styled is fine at this point — Task 8 handles layout; `openLightbox` itself is still Drive-based and untouched — Task 10 rewrites it fully, so don't test clicking into it yet).
+With Task 10 already returning real data from the test uploads, open `galeria.html` on production (per this project's established pattern, Drive/webhook quirks mean production is the reliable place to test, not `localhost`), confirm the test tiles render with correct images in `#photo-grid`/`#video-grid` (ugly/un-styled is fine at this point — Task 12 handles layout; `openLightbox` itself is still Drive-based and untouched — Task 14 rewrites it fully, so don't test clicking into it yet).
 
 ---
 
-### Task 8: Frontend — layout masonry y proporciones reales
+### Task 12: Frontend — layout masonry y proporciones reales
 
 **Files:**
 - Modify: `galeria.html` (CSS only, lines ~159–209 per current file: `.gallery-grid`, `.gallery-tile`, `.video-tile`, `.skeleton-tile` rules)
 
 **Interfaces:**
-- Consumes: Task 7's rendered `<img>`/tile elements inside `#photo-grid`/`#video-grid`.
+- Consumes: Task 11's rendered `<img>`/tile elements inside `#photo-grid`/`#video-grid`.
 
 - [ ] **Step 1: Replace `.gallery-grid` with a CSS multi-column layout**
 
@@ -362,7 +800,7 @@ Keep the existing `:hover` transform/zoom rules as-is (they don't depend on `asp
 
 - [ ] **Step 3: Remove `.video-tile { aspect-ratio: 16/9; }` and the iframe-specific rules**
 
-`.video-tile iframe` and `.video-shield` rules are deleted in this task (Task 9 replaces the video tile's internal markup and adds its own CSS for the poster+play-icon look).
+`.video-tile iframe` and `.video-shield` rules are deleted in this task (Task 13 replaces the video tile's internal markup and adds its own CSS for the poster+play-icon look).
 
 - [ ] **Step 4: Update `.skeleton-tile` to a fixed height instead of `aspect-ratio: 1/1`**
 
@@ -370,11 +808,11 @@ Masonry columns can't predict a skeleton's eventual aspect ratio before the real
 
 - [ ] **Step 5: Manual verification**
 
-Reload the gallery with the two Task 7 test items plus a handful of temporary cloned tiles (same technique used earlier in this project: temporarily duplicate a tile in devtools, remove after) to confirm columns wrap, tiles keep real aspect ratio without cropping, and nothing overlaps at phone width (375px) and desktop width.
+Reload the gallery with the Task 11 test items plus a handful of temporary cloned tiles (same technique used earlier in this project: temporarily duplicate a tile in devtools, remove after) to confirm columns wrap, tiles keep real aspect ratio without cropping, and nothing overlaps at phone width (375px) and desktop width.
 
 ---
 
-### Task 9: Frontend — tarjeta de vídeo con póster propio y reproductor nativo
+### Task 13: Frontend — tarjeta de vídeo con póster propio y reproductor nativo
 
 **Files:**
 - Modify: `js/gallery.js` (`createVideoTile`)
@@ -382,7 +820,7 @@ Reload the gallery with the two Task 7 test items plus a handful of temporary cl
 
 **Interfaces:**
 - Consumes: `item.posterUrl`, `item.url` (the transcoded mp4) from the Data Contract.
-- Produces: a tile whose click behavior matches `createPhotoTile`'s (opens the lightbox via whatever mechanism Task 7 Step 3 set up / Task 10 finalizes).
+- Produces: a tile whose click behavior matches `createPhotoTile`'s (opens the lightbox via whatever mechanism Task 11 Step 3 set up / Task 14 finalizes).
 
 - [ ] **Step 1: Rewrite `createVideoTile(item)` to build a poster-image tile**
 
@@ -424,11 +862,11 @@ No `<iframe>`, no `.video-shield` — those only existed to cope with Drive's em
 
 - [ ] **Step 3: Manual verification**
 
-With the Task 4 test video now flowing through Tasks 7–9, confirm the video tile shows the poster with a centered play icon (no Drive branding anywhere) at its correct aspect ratio (no black bars forced by a 16:9 container). `openLightbox` is still Drive-based and untouched at this point — Task 10 rewrites it to actually play the video with native controls (`<video controls playsinline>`, matching the plan's deadline-driven decision to skip custom player chrome), so don't test clicking into it yet.
+With a test video now flowing through Tasks 11-13, confirm the video tile shows the poster with a centered play icon (no Drive branding anywhere) at its correct aspect ratio (no black bars forced by a 16:9 container). `openLightbox` is still Drive-based and untouched at this point — Task 14 rewrites it to actually play the video with native controls (`<video controls playsinline>`, matching the plan's deadline-driven decision to skip custom player chrome), so don't test clicking into it yet.
 
 ---
 
-### Task 10: Frontend — lightbox con navegación y contador
+### Task 14: Frontend — lightbox con navegación y contador
 
 **Files:**
 - Modify: `js/gallery.js` (`openLightbox`)
@@ -436,7 +874,7 @@ With the Task 4 test video now flowing through Tasks 7–9, confirm the video ti
 
 **Interfaces:**
 - Consumes: the full sorted list of currently-rendered items (photos + videos combined in display order) and the clicked item's `id`.
-- Produces: final `openLightbox` signature other code calls — `openLightbox(id)`, looking up position internally (keeps Task 9's call site unchanged).
+- Produces: final `openLightbox` signature other code calls — `openLightbox(id)`, looking up position internally (keeps Task 13's call site unchanged).
 
 - [ ] **Step 1: Track a flat, ordered list of all rendered items for navigation**
 
@@ -461,7 +899,7 @@ function openLightbox(id) {
   let mediaEl = null;
 
   function renderMedia() {
-    if (mediaEl) mediaEl.remove();
+    if (mediaEl) { if (mediaEl.tagName === 'VIDEO') mediaEl.pause(); mediaEl.remove(); }
     const item = orderedItems[index];
     if (item.mimeType === 'video/mp4') {
       mediaEl = document.createElement('video');
@@ -480,6 +918,7 @@ function openLightbox(id) {
   }
 
   function closeLightbox() {
+    if (mediaEl && mediaEl.tagName === 'VIDEO') mediaEl.pause();
     overlay.classList.remove('is-open');
     document.removeEventListener('keydown', onKeydown);
     overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
@@ -505,6 +944,8 @@ function openLightbox(id) {
 }
 ```
 
+Note the explicit `mediaEl.pause()` calls (on navigation and on close) before removing/replacing a `<video>` element — this is what keeps audio from continuing to play after the element is gone.
+
 - [ ] **Step 3: Add CSS for `.lightbox-nav` and `.lightbox-counter`**
 
 ```css
@@ -525,11 +966,11 @@ function openLightbox(id) {
 
 - [ ] **Step 4: Manual verification**
 
-With at least 3 mixed test items rendered (reuse Task 8's temporary clones or upload one more real test photo), open the lightbox from any tile, confirm the counter shows the correct `N / total`, arrow buttons and ← → keys both move between items without closing the overlay, videos pause/stop correctly when navigating away (verify no audio keeps playing after `mediaEl.remove()` — if it does, call `mediaEl.pause()` before removal), and Escape/click-outside still closes it.
+With at least 3 mixed test items rendered (reuse Task 12's temporary clones or upload one more real test photo), open the lightbox from any tile, confirm the counter shows the correct `N / total`, arrow buttons and ← → keys both move between items without closing the overlay, a playing video stops (no audio continuing) when navigating away or closing, and Escape/click-outside still closes it.
 
 ---
 
-### Task 11: Validación end-to-end
+### Task 15: Validación end-to-end
 
 **Files:** none (manual QA pass across everything above).
 
@@ -551,4 +992,4 @@ After the two test uploads, re-check Coolify's CPU/RAM metrics (as earlier in th
 
 - [ ] **Step 5: Clean up test uploads**
 
-Remove the test entries' files and manifest lines so the gallery is empty and ready for real guests before 2026-10-24 (manifest.jsonl is a plain text file — remove the relevant lines directly; delete the corresponding files under `originals/`, `grid/`/`posters/`/`video/`).
+Remove the test entries' files and manifest lines so the gallery is empty and ready for real guests before 2026-10-24 (`manifest.jsonl` is a plain text file — remove the relevant lines directly; delete the corresponding files under `originals/`, `grid/`/`posters/`/`video/`).
