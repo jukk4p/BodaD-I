@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 function generateId() {
-  return `${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+  return `${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
 }
 
 function sanitizeExt(filename) {
