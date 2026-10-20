@@ -10,8 +10,8 @@ async function processVideo({ id, ext }) {
   await runFfmpeg(['-y', '-protocol_whitelist', 'file', '-f', format, '-i', original, '-vframes', '1', '-q:v', '3', '-update', '1', paths.posterPath(id)]);
   await runFfmpeg([
     '-y', '-protocol_whitelist', 'file', '-f', format, '-i', original,
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
-    '-vf', "scale='min(1920,iw)':'min(1920,ih)':force_original_aspect_ratio=decrease",
+    '-c:v', 'libx264', '-profile:v', 'high', '-preset', 'veryfast', '-crf', '23',
+    '-vf', "scale='min(1920,iw)':'min(1920,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2,format=yuv420p",
     '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
     paths.videoPath(id)
   ]);

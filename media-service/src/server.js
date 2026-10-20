@@ -22,6 +22,7 @@ app.post('/upload', upload.single('data'), async (req, res) => {
   if (!isImage && !isVideo) return res.status(400).json({ error: 'unsupported mimeType' });
 
   const originalPath = paths.originalPath(id, ext);
+  let safeExt;
   try {
     const nodePath = require('path');
     [originalPath, paths.gridPath(id), paths.posterPath(id), paths.videoPath(id)]
@@ -30,10 +31,17 @@ app.post('/upload', upload.single('data'), async (req, res) => {
 
     let item;
     if (isImage) {
-      const { width, height } = await processPhoto({ id, ext });
+      const photo = await processPhoto({ id, ext });
+      const { width, height } = photo;
+      safeExt = photo.safeExt;
+      // Serve the original under the extension of its validated content
+      // format, never the guest-supplied one (stored-XSS via e.g. x.html).
+      if (safeExt !== ext) {
+        fs.renameSync(paths.originalPath(id, ext), paths.originalPath(id, safeExt));
+      }
       item = {
         id, name: req.file.originalname, mimeType: req.file.mimetype, width, height,
-        url: `${PUBLIC_BASE_URL}/originals/${id}.${ext}`,
+        url: `${PUBLIC_BASE_URL}/originals/${id}.${safeExt}`,
         gridUrl: `${PUBLIC_BASE_URL}/grid/${id}.jpg`
       };
     } else {
@@ -47,9 +55,11 @@ app.post('/upload', upload.single('data'), async (req, res) => {
     manifest.appendLine(item);
     res.status(201).json(item);
   } catch (err) {
-    [paths.originalPath(id, ext), paths.gridPath(id), paths.posterPath(id), paths.videoPath(id)]
-      .forEach((p) => { try { fs.unlinkSync(p); } catch {} });
-    res.status(500).json({ error: err.message });
+    const cleanup = [paths.originalPath(id, ext), paths.gridPath(id), paths.posterPath(id), paths.videoPath(id)];
+    if (safeExt) cleanup.push(paths.originalPath(id, safeExt));
+    cleanup.forEach((p) => { try { fs.unlinkSync(p); } catch {} });
+    console.error('upload failed:', err);
+    res.status(500).json({ error: 'upload processing failed' });
   }
 });
 
@@ -60,7 +70,8 @@ app.use((err, req, res, next) => {
   if (err && err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({ error: 'file too large (max 50MB)' });
   }
-  res.status(500).json({ error: err.message });
+  console.error('unhandled error:', err);
+  res.status(500).json({ error: 'internal server error' });
 });
 
 if (require.main === module) {

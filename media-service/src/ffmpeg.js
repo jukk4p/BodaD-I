@@ -23,13 +23,24 @@ const runFfprobe = (args) => runCommand('ffprobe', args);
 // task-7b security fix report for the exact commands/output) — not guessed.
 // Keys are the literal string ffprobe prints for `-show_entries format=format_name`.
 const ALLOWED_FORMATS = new Set([
-  'image2',                     // baseline JPEG
+  'image2',                     // JPEG when ffmpeg recognizes the file's extension
+  'jpeg_pipe',                  // the same JPEG content when it doesn't (no/unusual extension, or very small files)
   'png_pipe',                   // PNG
   'webp_pipe',                  // WebP
   'mov,mp4,m4a,3gp,3g2,mj2',    // MP4 / QuickTime .mov family (iPhone video)
   'matroska,webm',              // Matroska / WebM
   'avi',                        // AVI
 ]);
+
+// Maps a validated ffprobe format_name to the extension we actually save
+// the file under and serve it as — never trust the guest's own filename
+// extension for this (see processPhoto.js / server.js for why).
+const FORMAT_TO_EXT = {
+  image2: 'jpg',
+  jpeg_pipe: 'jpg',
+  png_pipe: 'png',
+  webp_pipe: 'webp',
+};
 
 // Pure, synchronous default-deny check: true only for exact ALLOWED_FORMATS
 // members. Anything else (including non-strings) is false. No process spawn.
@@ -60,4 +71,4 @@ async function detectAndValidateFormat(filePath) {
   return formatName;
 }
 
-module.exports = { runCommand, runFfmpeg, runFfprobe, detectAndValidateFormat, isAllowedFormat, ALLOWED_FORMATS };
+module.exports = { runCommand, runFfmpeg, runFfprobe, detectAndValidateFormat, isAllowedFormat, ALLOWED_FORMATS, FORMAT_TO_EXT };
