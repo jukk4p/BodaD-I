@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { runCommand, isAllowedFormat, ALLOWED_FORMATS, FORMAT_TO_EXT } = require('../src/ffmpeg');
+const { runCommand, isAllowedFormat, ALLOWED_FORMATS, FORMAT_TO_EXT, VIDEO_FORMAT_TO_EXT } = require('../src/ffmpeg');
 
 test('runCommand resolves with stdout on success', async () => {
   const { stdout } = await runCommand('node', ['-e', 'process.stdout.write("hello")']);
@@ -48,4 +48,10 @@ test('FORMAT_TO_EXT maps validated image formats to the extension we serve', () 
   assert.strictEqual(FORMAT_TO_EXT.jpeg_pipe, 'jpg');
   assert.strictEqual(FORMAT_TO_EXT.png_pipe, 'png');
   assert.strictEqual(FORMAT_TO_EXT.webp_pipe, 'webp');
+});
+
+test('VIDEO_FORMAT_TO_EXT maps validated video containers to the extension we store', () => {
+  assert.strictEqual(VIDEO_FORMAT_TO_EXT['mov,mp4,m4a,3gp,3g2,mj2'], 'mov');
+  assert.strictEqual(VIDEO_FORMAT_TO_EXT['matroska,webm'], 'mkv');
+  assert.strictEqual(VIDEO_FORMAT_TO_EXT.avi, 'avi');
 });

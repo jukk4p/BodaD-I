@@ -45,7 +45,12 @@ app.post('/upload', upload.single('data'), async (req, res) => {
         gridUrl: `${PUBLIC_BASE_URL}/grid/${id}.jpg`
       };
     } else {
-      const { width, height } = await processVideo({ id, ext });
+      const video = await processVideo({ id, ext });
+      const { width, height } = video;
+      safeExt = video.safeExt;
+      if (safeExt !== ext) {
+        fs.renameSync(paths.originalPath(id, ext), paths.originalPath(id, safeExt));
+      }
       item = {
         id, name: req.file.originalname, mimeType: 'video/mp4', width, height,
         url: `${PUBLIC_BASE_URL}/video/${id}.mp4`,

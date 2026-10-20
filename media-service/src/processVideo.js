@@ -1,4 +1,4 @@
-const { runFfmpeg, runFfprobe, detectAndValidateFormat } = require('./ffmpeg');
+const { runFfmpeg, runFfprobe, detectAndValidateFormat, VIDEO_FORMAT_TO_EXT } = require('./ffmpeg');
 const paths = require('./paths');
 
 async function processVideo({ id, ext }) {
@@ -7,6 +7,14 @@ async function processVideo({ id, ext }) {
   // call touches this untrusted file, then pin it explicitly on every call
   // below so ffmpeg never re-probes (auto-selects) the demuxer itself.
   const format = await detectAndValidateFormat(original);
+  // The extension we save/serve the original under comes from the validated
+  // content format, never the guest's filename — same reasoning as
+  // processPhoto.js. An image format sent with a video/* mimetype passes
+  // the allowlist but has no video extension: reject.
+  const safeExt = VIDEO_FORMAT_TO_EXT[format];
+  if (!safeExt) {
+    throw new Error(`rejected upload: content format "${format}" is not a supported video type`);
+  }
   await runFfmpeg(['-y', '-protocol_whitelist', 'file', '-f', format, '-i', original, '-vframes', '1', '-q:v', '3', '-update', '1', paths.posterPath(id)]);
   await runFfmpeg([
     '-y', '-protocol_whitelist', 'file', '-f', format, '-i', original,
@@ -22,7 +30,7 @@ async function processVideo({ id, ext }) {
     '-protocol_whitelist', 'file', '-i', paths.videoPath(id)
   ]);
   const [width, height] = stdout.split('x').map(Number);
-  return { width, height };
+  return { width, height, safeExt };
 }
 
 module.exports = { processVideo };

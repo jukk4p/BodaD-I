@@ -42,6 +42,16 @@ const FORMAT_TO_EXT = {
   webp_pipe: 'webp',
 };
 
+// Same idea as FORMAT_TO_EXT but for the video-container formats in
+// ALLOWED_FORMATS — video originals are also served statically by nginx
+// under their stored extension even though no manifest field links them
+// directly, so they need the same stored-XSS protection as photos.
+const VIDEO_FORMAT_TO_EXT = {
+  'mov,mp4,m4a,3gp,3g2,mj2': 'mov',
+  'matroska,webm': 'mkv',
+  'avi': 'avi',
+};
+
 // Pure, synchronous default-deny check: true only for exact ALLOWED_FORMATS
 // members. Anything else (including non-strings) is false. No process spawn.
 function isAllowedFormat(formatName) {
@@ -71,4 +81,4 @@ async function detectAndValidateFormat(filePath) {
   return formatName;
 }
 
-module.exports = { runCommand, runFfmpeg, runFfprobe, detectAndValidateFormat, isAllowedFormat, ALLOWED_FORMATS, FORMAT_TO_EXT };
+module.exports = { runCommand, runFfmpeg, runFfprobe, detectAndValidateFormat, isAllowedFormat, ALLOWED_FORMATS, FORMAT_TO_EXT, VIDEO_FORMAT_TO_EXT };
