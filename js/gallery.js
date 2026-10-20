@@ -1,5 +1,5 @@
-// Lógica de la galería en vivo: sincroniza con la carpeta de Drive vía el
-// webhook de listado de n8n. Usada por galeria.html.
+// Lógica de la galería en vivo: sincroniza con el listado de media-service
+// vía el webhook de n8n. Usada por galeria.html.
 
 const GALLERY_WEBHOOK_URL = 'https://n8n.ivangonzalez.cloud/webhook/boda-daniel-irene-galeria';
 const GALLERY_POLL_INTERVAL_MS = 20000;
@@ -86,7 +86,7 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
     function renderMedia() {
       if (mediaEl) { if (mediaEl.tagName === 'VIDEO') mediaEl.pause(); mediaEl.remove(); }
       const item = list[index];
-      if (item.mimeType === 'video/mp4') {
+      if (item.mimeType.startsWith('video/')) {
         mediaEl = document.createElement('video');
         mediaEl.controls = true; mediaEl.playsInline = true; mediaEl.src = item.url; mediaEl.poster = item.posterUrl;
       } else {
@@ -106,7 +106,14 @@ function initGallery({ photoGridId, videoGridId, photoEmptyId, videoEmptyId, err
       if (mediaEl && mediaEl.tagName === 'VIDEO') mediaEl.pause();
       overlay.classList.remove('is-open');
       document.removeEventListener('keydown', onKeydown);
-      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+      // Con reduced-motion la transición está desactivada en CSS y
+      // transitionend nunca se dispara: quitar el overlay directamente.
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        overlay.remove();
+      } else {
+        overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+      }
     }
     function onKeydown(e) {
       if (e.key === 'Escape') closeLightbox();

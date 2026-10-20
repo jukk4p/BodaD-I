@@ -269,12 +269,14 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 1.1rem; line-height: 1;
     cursor: pointer;
+    z-index: 2;
   }
   .lightbox-nav {
     position: absolute; top: 50%; transform: translateY(-50%);
     width: 44px; height: 44px; border-radius: 50%;
     background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25);
     color: #f6f7f5; font-size: 1.4rem; line-height: 1; cursor: pointer;
+    z-index: 2;
   }
   .lightbox-prev { left: 1rem; }
   .lightbox-next { right: 1rem; }
@@ -282,6 +284,7 @@
     position: absolute; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
     font-size: 0.78rem; letter-spacing: 0.05em; color: #f6f7f5;
     background: rgba(0,0,0,0.35); padding: 0.3rem 0.8rem; border-radius: 999px;
+    z-index: 2;
   }
 
   @media (prefers-reduced-motion: reduce) {
