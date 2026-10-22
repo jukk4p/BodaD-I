@@ -1,13 +1,31 @@
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
+const nodePath = require('path');
 const { generateId, sanitizeExt } = require('./id');
 const paths = require('./paths');
 const { processPhoto } = require('./processPhoto');
 const { processVideo } = require('./processVideo');
 const manifest = require('./manifest');
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+const originalsDir = nodePath.dirname(paths.originalPath('x', 'x'));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      fs.mkdirSync(originalsDir, { recursive: true });
+      cb(null, originalsDir);
+    },
+    filename: (req, file, cb) => {
+      const id = generateId();
+      const ext = sanitizeExt(file.originalname);
+      req.uploadId = id;
+      req.uploadExt = ext;
+      cb(null, `${id}.${ext}`);
+    }
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://bodadaniyirene.ivangonzalez.cloud/uploads';
 
 const app = express();
@@ -15,19 +33,20 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/upload', upload.single('data'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'missing file field "data"' });
-  const id = generateId();
-  const ext = sanitizeExt(req.file.originalname);
+  const id = req.uploadId;
+  const ext = req.uploadExt;
   const isImage = req.file.mimetype.startsWith('image/');
   const isVideo = req.file.mimetype.startsWith('video/');
-  if (!isImage && !isVideo) return res.status(400).json({ error: 'unsupported mimeType' });
+  if (!isImage && !isVideo) {
+    try { fs.unlinkSync(req.file.path); } catch {}
+    return res.status(400).json({ error: 'unsupported mimeType' });
+  }
 
   const originalPath = paths.originalPath(id, ext);
   let safeExt;
   try {
-    const nodePath = require('path');
-    [originalPath, paths.gridPath(id), paths.posterPath(id), paths.videoPath(id)]
+    [paths.gridPath(id), paths.posterPath(id), paths.videoPath(id)]
       .forEach((p) => fs.mkdirSync(nodePath.dirname(p), { recursive: true }));
-    fs.writeFileSync(originalPath, req.file.buffer);
 
     let item;
     if (isImage) {
