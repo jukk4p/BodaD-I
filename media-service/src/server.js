@@ -7,8 +7,16 @@ const paths = require('./paths');
 const { processPhoto } = require('./processPhoto');
 const { processVideo } = require('./processVideo');
 const manifest = require('./manifest');
+const { createLimiter } = require('./concurrencyLimit');
 
 const originalsDir = nodePath.dirname(paths.originalPath('x', 'x'));
+
+// Caps simultaneous ffmpeg transcodes so a burst of guest uploads can't all
+// spawn child processes at once and starve the shared VPS (n8n, Postgres,
+// ~10 other services). Excess requests queue in-process and still complete,
+// just one after another instead of all competing for CPU together.
+const MAX_CONCURRENT_PROCESSING = Number(process.env.MAX_CONCURRENT_PROCESSING) || 2;
+const processingLimiter = createLimiter(MAX_CONCURRENT_PROCESSING);
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -49,33 +57,35 @@ app.post('/upload', upload.single('data'), async (req, res) => {
       .forEach((p) => fs.mkdirSync(nodePath.dirname(p), { recursive: true }));
 
     let item;
-    if (isImage) {
-      const photo = await processPhoto({ id, ext });
-      const { width, height } = photo;
-      safeExt = photo.safeExt;
-      // Serve the original under the extension of its validated content
-      // format, never the guest-supplied one (stored-XSS via e.g. x.html).
-      if (safeExt !== ext) {
-        fs.renameSync(paths.originalPath(id, ext), paths.originalPath(id, safeExt));
+    await processingLimiter.run(async () => {
+      if (isImage) {
+        const photo = await processPhoto({ id, ext });
+        const { width, height } = photo;
+        safeExt = photo.safeExt;
+        // Serve the original under the extension of its validated content
+        // format, never the guest-supplied one (stored-XSS via e.g. x.html).
+        if (safeExt !== ext) {
+          fs.renameSync(paths.originalPath(id, ext), paths.originalPath(id, safeExt));
+        }
+        item = {
+          id, name: req.file.originalname, mimeType: req.file.mimetype, width, height,
+          url: `${PUBLIC_BASE_URL}/originals/${id}.${safeExt}`,
+          gridUrl: `${PUBLIC_BASE_URL}/grid/${id}.jpg`
+        };
+      } else {
+        const video = await processVideo({ id, ext });
+        const { width, height } = video;
+        safeExt = video.safeExt;
+        if (safeExt !== ext) {
+          fs.renameSync(paths.originalPath(id, ext), paths.originalPath(id, safeExt));
+        }
+        item = {
+          id, name: req.file.originalname, mimeType: 'video/mp4', width, height,
+          url: `${PUBLIC_BASE_URL}/video/${id}.mp4`,
+          posterUrl: `${PUBLIC_BASE_URL}/posters/${id}.jpg`
+        };
       }
-      item = {
-        id, name: req.file.originalname, mimeType: req.file.mimetype, width, height,
-        url: `${PUBLIC_BASE_URL}/originals/${id}.${safeExt}`,
-        gridUrl: `${PUBLIC_BASE_URL}/grid/${id}.jpg`
-      };
-    } else {
-      const video = await processVideo({ id, ext });
-      const { width, height } = video;
-      safeExt = video.safeExt;
-      if (safeExt !== ext) {
-        fs.renameSync(paths.originalPath(id, ext), paths.originalPath(id, safeExt));
-      }
-      item = {
-        id, name: req.file.originalname, mimeType: 'video/mp4', width, height,
-        url: `${PUBLIC_BASE_URL}/video/${id}.mp4`,
-        posterUrl: `${PUBLIC_BASE_URL}/posters/${id}.jpg`
-      };
-    }
+    });
     manifest.appendLine(item);
     res.status(201).json(item);
   } catch (err) {
