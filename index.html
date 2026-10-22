@@ -476,6 +476,9 @@
     border-bottom-color: var(--mist);
     cursor: not-allowed;
   }
+  .btn-line.is-uploading { cursor: wait; }
+  .btn-line.is-uploading svg { animation: upload-spin 0.8s linear infinite; }
+  @keyframes upload-spin { to { transform: rotate(360deg); } }
 
   /* ── DETAILS (El Gran Día) ────────────────────────── */
   .details {

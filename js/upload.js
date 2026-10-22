@@ -36,10 +36,11 @@ function initUploadFlow({ buttonId, inputId, labelId, isActive, lockedMessage })
     let rejectedCount = 0;
 
     isUploading = true;
+    btn.classList.add('is-uploading');
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        btnLabel.textContent = `Subiendo ${i + 1}/${files.length}…`;
+        btnLabel.textContent = `Subiendo ${i + 1}/${files.length}… no cierres esta pantalla`;
 
         const isAllowedType = ALLOWED_TYPE_PREFIXES.some(p => file.type.startsWith(p));
         if (!isAllowedType || file.size > MAX_FILE_SIZE_BYTES) {
@@ -74,6 +75,7 @@ function initUploadFlow({ buttonId, inputId, labelId, isActive, lockedMessage })
       resetLabelTimeoutId = setTimeout(() => { btnLabel.textContent = originalLabel; }, 3000);
     } finally {
       isUploading = false;
+      btn.classList.remove('is-uploading');
     }
   });
 }
