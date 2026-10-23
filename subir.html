@@ -88,26 +88,52 @@
     transition: border-color 0.2s ease;
   }
   .back-link:hover { border-color: var(--gold-text); }
+  .live-counter {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin: -0.8rem 0 1.6rem;
+    letter-spacing: 0.01em;
+  }
 </style>
 </head>
 <body>
   <div class="card">
     <h1>Daniel &amp; Irene</h1>
     <p>Comparte con nosotros tus fotos y vídeos del gran día.</p>
+    <p class="live-counter" id="live-counter" hidden></p>
     <button class="btn-line" id="upload-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> <span id="upload-btn-label">Subir Fotos y Vídeos</span></button>
     <input type="file" id="upload-input" multiple accept="image/*,video/*" style="display:none">
     <br>
-    <a class="back-link" href="index.html?open=1">← Volver a la invitación</a>
+    <a class="back-link" id="back-link" href="index.html?open=1">← Volver a la invitación</a>
   </div>
 
   <script src="js/upload.js"></script>
   <script>
+    const GALLERY_WEBHOOK_URL = 'https://n8n.ivangonzalez.cloud/webhook/boda-daniel-irene-galeria';
     const uploadActive = Date.now() >= new Date('2026-10-24T00:00:00').getTime();
     const btn = document.getElementById('upload-btn');
     const btnLabel = document.getElementById('upload-btn-label');
     if (!uploadActive) {
       btn.classList.add('is-disabled');
       btnLabel.textContent = 'Disponible el día de la boda';
+    } else {
+      // Quien llega aquí vino del QR físico de la mesa de fotos, no de la
+      // invitación — "volver a la invitación" no tiene sentido ese día.
+      const backLink = document.getElementById('back-link');
+      backLink.href = 'galeria.html';
+      backLink.textContent = 'Ver galería en vivo →';
+
+      fetch(GALLERY_WEBHOOK_URL, { signal: AbortSignal.timeout(8000) })
+        .then((res) => res.ok ? res.json() : Promise.reject())
+        .then((items) => {
+          if (!Array.isArray(items) || items.length === 0) return;
+          const photoCount = items.filter((i) => i.mimeType && i.mimeType.startsWith('image/')).length;
+          const videoCount = items.filter((i) => i.mimeType && i.mimeType.startsWith('video/')).length;
+          const counter = document.getElementById('live-counter');
+          counter.textContent = `${photoCount} foto(s) y ${videoCount} vídeo(s) compartidos hasta ahora`;
+          counter.hidden = false;
+        })
+        .catch(() => {});
     }
     initUploadFlow({
       buttonId: 'upload-btn',
