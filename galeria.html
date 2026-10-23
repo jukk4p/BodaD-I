@@ -22,6 +22,7 @@
     --mist:       #dbe1de;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
   html { overflow-x: hidden; }
   body {
     font-family: 'Archivo', sans-serif;
@@ -348,7 +349,9 @@
 
   <script src="js/gallery.js"></script>
   <script>
-    const galleryActive = Date.now() >= new Date('2026-10-24T00:00:00').getTime();
+    // Se abre 1h antes de la ceremonia (12:00 Sevilla) = 11:00 CEST.
+    // Offset +02:00 fijo para no depender de la zona horaria del móvil.
+    const galleryActive = Date.now() >= new Date('2026-10-24T11:00:00+02:00').getTime();
     document.getElementById('lock-card').hidden = galleryActive;
     document.getElementById('gallery-app').hidden = !galleryActive;
 

@@ -22,6 +22,7 @@
     --mist:       #dbe1de;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
   html { scroll-behavior: smooth; overflow-x: hidden; }
   html, body { max-width: 100%; }
   body {
@@ -458,6 +459,13 @@
     text-transform: uppercase;
     color: var(--muted);
   }
+  .countdown-mini {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--gold-text);
+    margin: 0.9rem 0 0;
+  }
   .btn-line {
     display: inline-flex; align-items: center; gap: 0.5rem;
     margin-top: 1.9rem;
@@ -479,6 +487,12 @@
   .btn-line.is-uploading { cursor: wait; }
   .btn-line.is-uploading svg { animation: upload-spin 0.8s linear infinite; }
   @keyframes upload-spin { to { transform: rotate(360deg); } }
+  .today-cta-row {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 0.5rem 1.6rem;
+    margin-top: 1.9rem;
+  }
+  .today-cta-row .btn-line { margin-top: 0; }
 
   /* ── DETAILS (El Gran Día) ────────────────────────── */
   .details {
@@ -539,6 +553,32 @@
     color: var(--ink-deep); min-width: 56px;
   }
   .schedule-name { font-size: 0.98rem; font-weight: 600; color: var(--charcoal); }
+  .schedule-row.is-now {
+    background: linear-gradient(135deg, rgba(180,134,76,0.18), rgba(180,134,76,0.07));
+    border-left-color: var(--gold-text);
+    box-shadow: 0 6px 16px rgba(180, 134, 76, 0.18);
+  }
+  .schedule-live-tag {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    margin-left: auto;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--gold-text);
+  }
+  .schedule-row:not(.is-now) .schedule-live-tag { color: var(--muted); }
+  .schedule-live-tag .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold); flex: none;
+    animation: scheduleLivePulse 2.2s ease-out infinite;
+  }
+  .schedule-row:not(.is-now) .schedule-live-tag .live-dot { animation: none; opacity: 0.5; }
+  @keyframes scheduleLivePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(180, 134, 76, 0.55); }
+    70%  { box-shadow: 0 0 0 6px rgba(180, 134, 76, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(180, 134, 76, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .schedule-live-tag .live-dot { animation: none !important; }
+  }
 
   /* ── HISTORIA ─────────────────────────────────────── */
   .verse-intro {
@@ -615,7 +655,12 @@
   .closing {
     position: relative;
     overflow: hidden;
+    margin: 1.2rem 1rem 2rem;
     padding: 4.6rem 2rem 5rem;
+    background: var(--paper);
+    border-radius: 24px;
+    border: 1px solid rgba(180, 134, 76, 0.25);
+    box-shadow: 0 16px 36px rgba(31, 51, 71, 0.09);
     text-align: center;
   }
   .closing > *:not(.closing-floral) { position: relative; z-index: 1; }
@@ -716,17 +761,22 @@
       <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
       <div class="section-header">
         <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 8 1-1.5 5-3 5-8M7 21c0-5 4-6.5 5-8 1 1.5 5 3 5 8"/></svg></div>
-        <p class="section-tag">Faltan</p>
-        <h2 class="section-title">Para Nuestro Gran Día</h2>
+        <p class="section-tag" id="cuenta-atras-tag">Faltan</p>
+        <h2 class="section-title" id="cuenta-atras-title">Para Nuestro Gran Día</h2>
         <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
       </div>
-      <div class="countdown-row">
+      <div class="countdown-row" id="countdown-row">
         <div class="cd-box"><span class="cd-val" id="cd-days">0</span><span class="cd-lbl">Días</span></div>
         <div class="cd-box"><span class="cd-val" id="cd-hours">0</span><span class="cd-lbl">Horas</span></div>
         <div class="cd-box"><span class="cd-val" id="cd-mins">0</span><span class="cd-lbl">Min</span></div>
         <div class="cd-box"><span class="cd-val" id="cd-secs">0</span><span class="cd-lbl">Seg</span></div>
       </div>
-      <button class="btn-line" onclick="downloadICS()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Añadir a mi calendario</button>
+      <button class="btn-line" id="ics-btn" onclick="downloadICS()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Añadir a mi calendario</button>
+      <p class="section-body" id="today-banner-text" hidden>¡Hoy es el día! Mientras disfrutáis, nos encantaría ver la boda también a través de vuestros ojos.</p>
+      <div class="today-cta-row" id="today-cta-row" hidden>
+        <a class="btn-line" href="subir.html"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> Subir Fotos y Vídeos</a>
+        <a class="btn-line" href="galeria.html"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 14l4.5-4.5a2 2 0 0 1 2.8 0L15 14"/><circle cx="9" cy="9" r="1.2"/></svg> Ver Galería en Vivo</a>
+      </div>
     </div>
   </div>
 
@@ -786,10 +836,10 @@
         <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
       </div>
       <div class="schedule">
-        <div class="schedule-row"><span class="schedule-time">12:00</span><span class="schedule-name">Ceremonia</span></div>
-        <div class="schedule-row"><span class="schedule-time">13:00</span><span class="schedule-name">Cóctel</span></div>
-        <div class="schedule-row"><span class="schedule-time">15:00</span><span class="schedule-name">Comida</span></div>
-        <div class="schedule-row"><span class="schedule-time">18:00</span><span class="schedule-name">Fiesta</span></div>
+        <div class="schedule-row" data-time="2026-10-24T12:00:00+02:00"><span class="schedule-time">12:00</span><span class="schedule-name">Ceremonia</span><span class="schedule-live-tag" hidden><span class="live-dot" aria-hidden="true"></span><span class="tag-label"></span></span></div>
+        <div class="schedule-row" data-time="2026-10-24T13:00:00+02:00"><span class="schedule-time">13:00</span><span class="schedule-name">Cóctel</span><span class="schedule-live-tag" hidden><span class="live-dot" aria-hidden="true"></span><span class="tag-label"></span></span></div>
+        <div class="schedule-row" data-time="2026-10-24T15:00:00+02:00"><span class="schedule-time">15:00</span><span class="schedule-name">Comida</span><span class="schedule-live-tag" hidden><span class="live-dot" aria-hidden="true"></span><span class="tag-label"></span></span></div>
+        <div class="schedule-row" data-time="2026-10-24T18:00:00+02:00"><span class="schedule-time">18:00</span><span class="schedule-name">Fiesta</span><span class="schedule-live-tag" hidden><span class="live-dot" aria-hidden="true"></span><span class="tag-label"></span></span></div>
       </div>
     </div>
   </div>
@@ -859,6 +909,7 @@
         <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
       </div>
       <p class="section-body">El día de la boda, escanea el código o pulsa el botón para compartir con nosotros tus fotos y vídeos al momento.</p>
+      <p class="countdown-mini" id="recuerdos-countdown" hidden></p>
       <div class="qr-wrap is-locked" id="qr-wrap">
         <div id="qr-canvas" role="img" aria-label="Código QR para subir tus fotos y vídeos"></div>
         <div class="qr-lock-overlay" id="qr-lock-overlay">
@@ -967,6 +1018,12 @@
 <script src="js/qrcode.js"></script>
 <script src="js/upload.js"></script>
 <script>
+  // ── MODO DÍA DE LA BODA ──────────────────────────────
+  // La galería/subida se abren 1h antes de la ceremonia (12:00 hora de
+  // Sevilla), es decir a las 11:00 CEST. Offset +02:00 fijo para que no
+  // dependa de la zona horaria del dispositivo de cada invitado.
+  const recuerdosActive = Date.now() >= new Date('2026-10-24T11:00:00+02:00').getTime();
+
   // ── APERTURA ─────────────────────────────────────────
   document.body.style.overflow = 'hidden';
   function openInvitation(instant) {
@@ -1023,8 +1080,7 @@
     document.getElementById('nav-overlay').classList.toggle('open');
   }
 
-  // ── RECUERDOS: QR real + subida de fotos, bloqueado hasta el día de la boda ──
-  const recuerdosActive = Date.now() >= new Date('2026-10-24T00:00:00').getTime();
+  // ── RECUERDOS: QR real + subida de fotos, bloqueado hasta 1h antes de la ceremonia ──
   (function () {
     const qrWrap = document.getElementById('qr-wrap');
     if (recuerdosActive && qrWrap) qrWrap.classList.remove('is-locked');
@@ -1075,7 +1131,7 @@
 
   // ── CUENTA ATRÁS ─────────────────────────────────────
   function updateCountdown() {
-    const target = new Date('2026-10-24T12:00:00');
+    const target = new Date('2026-10-24T12:00:00+02:00');
     const now = new Date();
     const diff = target - now;
     if (diff <= 0) {
@@ -1092,6 +1148,81 @@
   }
   updateCountdown();
   setInterval(updateCountdown, 1000);
+
+  // ── TRANSFORMACIÓN DE LA INVITACIÓN EL DÍA DE LA BODA ──
+  // RSVP ya no tiene sentido una vez empezada la boda, y la cuenta atrás
+  // se sustituye por un llamado directo a compartir fotos/ver la galería.
+  if (recuerdosActive) {
+    // Historia, vestimenta, peques, alergias y confirmar son contenido de
+    // "antes de la boda" (planificación / logística previa) — ya no pintan
+    // nada una vez que el invitado está en el evento.
+    ['historia', 'vestimenta', 'peques', 'alergias', 'confirmar'].forEach((id) => {
+      const section = document.getElementById(id);
+      if (section) section.hidden = true;
+      const navLink = document.querySelector(`.nav-links a[href="#${id}"]`);
+      if (navLink) navLink.closest('li').hidden = true;
+    });
+
+    document.getElementById('cuenta-atras-tag').textContent = '¡Hoy Celebramos!';
+    document.getElementById('cuenta-atras-title').textContent = 'Nuestro Gran Día Ha Llegado';
+    document.getElementById('countdown-row').hidden = true;
+    document.getElementById('ics-btn').hidden = true;
+    document.getElementById('today-banner-text').hidden = false;
+    document.getElementById('today-cta-row').hidden = false;
+
+    // ── CRONOGRAMA EN VIVO ──────────────────────────────
+    // Solo tiene sentido mostrarlo el día de la boda — evita marcar
+    // "A continuación" en la Ceremonia durante meses antes del evento.
+    (function () {
+      const rows = Array.from(document.querySelectorAll('.schedule-row[data-time]'));
+      if (!rows.length) return;
+      function updateSchedule() {
+        const now = Date.now();
+        const times = rows.map((row) => new Date(row.dataset.time).getTime());
+        rows.forEach((row, i) => {
+          const isNow = now >= times[i] && now < (times[i + 1] ?? Infinity);
+          row.classList.toggle('is-now', isNow);
+          const tag = row.querySelector('.schedule-live-tag');
+          const label = row.querySelector('.tag-label');
+          if (tag && label) {
+            tag.hidden = !isNow;
+            if (isNow) label.textContent = 'En curso';
+          }
+        });
+        if (!rows.some((row) => row.classList.contains('is-now'))) {
+          const nextIndex = times.findIndex((t) => t > now);
+          if (nextIndex !== -1) {
+            const tag = rows[nextIndex].querySelector('.schedule-live-tag');
+            const label = rows[nextIndex].querySelector('.tag-label');
+            if (tag && label) { tag.hidden = false; label.textContent = 'A continuación'; }
+          }
+        }
+      }
+      updateSchedule();
+      setInterval(updateSchedule, 30000);
+    })();
+  }
+
+  // ── CUENTA ATRÁS MINI (sección Recuerdos) ────────────
+  function updateRecuerdosCountdown() {
+    const el = document.getElementById('recuerdos-countdown');
+    if (!el) return;
+    const diff = new Date('2026-10-24T11:00:00+02:00') - new Date();
+    if (diff <= 0) { el.hidden = true; return; }
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    if (days > 0) {
+      el.textContent = `Faltan ${days} día${days === 1 ? '' : 's'} y ${hours} hora${hours === 1 ? '' : 's'}`;
+    } else if (hours > 0) {
+      el.textContent = `Faltan ${hours} hora${hours === 1 ? '' : 's'} y ${mins} min`;
+    } else {
+      el.textContent = `¡Faltan solo ${mins} min!`;
+    }
+    el.hidden = false;
+  }
+  updateRecuerdosCountdown();
+  setInterval(updateRecuerdosCountdown, 30000);
 
   // ── CALENDARIO (.ics) ────────────────────────────────
   function downloadICS() {
