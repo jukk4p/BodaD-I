@@ -31,3 +31,24 @@ test('readAll skips a malformed line without failing the rest', () => {
   manifest.appendLine({ id: '2_b' });
   assert.deepStrictEqual(manifest.readAll(), [{ id: '1_a' }, { id: '2_b' }]);
 });
+
+test('removeById deletes the matching item and returns it', () => {
+  const manifest = freshManifest();
+  manifest.appendLine({ id: '1_a', name: 'x.jpg' });
+  manifest.appendLine({ id: '2_b', name: 'y.mp4' });
+  const removed = manifest.removeById('1_a');
+  assert.deepStrictEqual(removed, { id: '1_a', name: 'x.jpg' });
+  assert.deepStrictEqual(manifest.readAll(), [{ id: '2_b', name: 'y.mp4' }]);
+});
+
+test('removeById returns null when the id is not found', () => {
+  const manifest = freshManifest();
+  manifest.appendLine({ id: '1_a' });
+  assert.strictEqual(manifest.removeById('missing'), null);
+  assert.deepStrictEqual(manifest.readAll(), [{ id: '1_a' }]);
+});
+
+test('removeById returns null when the manifest does not exist yet', () => {
+  const manifest = freshManifest();
+  assert.strictEqual(manifest.removeById('1_a'), null);
+});

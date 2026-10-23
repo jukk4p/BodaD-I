@@ -15,4 +15,18 @@ function readAll() {
   }).filter(Boolean);
 }
 
-module.exports = { appendLine, readAll };
+function removeById(id) {
+  if (!fs.existsSync(paths.manifestPath())) return null;
+  const lines = fs.readFileSync(paths.manifestPath(), 'utf8').split('\n').filter(Boolean);
+  let removed = null;
+  const kept = lines.filter((line) => {
+    let item;
+    try { item = JSON.parse(line); } catch { return true; }
+    if (item && item.id === id) { removed = item; return false; }
+    return true;
+  });
+  fs.writeFileSync(paths.manifestPath(), kept.length ? kept.join('\n') + '\n' : '');
+  return removed;
+}
+
+module.exports = { appendLine, readAll, removeById };

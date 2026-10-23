@@ -169,9 +169,9 @@
   <script src="js/upload.js"></script>
   <script>
     const GALLERY_WEBHOOK_URL = 'https://n8n.ivangonzalez.cloud/webhook/boda-daniel-irene-galeria';
-    // Se abre 1h antes de la ceremonia (12:00 Sevilla) = 11:00 CEST.
-    // Offset +02:00 fijo para no depender de la zona horaria del móvil.
-    const uploadActive = Date.now() >= new Date('2026-10-24T11:00:00+02:00').getTime();
+    // Apertura 09:00 Sevilla (CEST). Offset +02:00 fijo para no depender
+    // de la zona horaria del móvil.
+    const uploadActive = Date.now() >= new Date('2026-10-24T09:00:00+02:00').getTime();
     const btn = document.getElementById('upload-btn');
     const btnLabel = document.getElementById('upload-btn-label');
     if (!uploadActive) {

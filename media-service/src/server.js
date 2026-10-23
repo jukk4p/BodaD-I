@@ -106,6 +106,21 @@ app.post('/upload', upload.single('data'), (req, res) => {
 
 app.get('/list', (req, res) => res.json(manifest.readAll()));
 
+app.delete('/items/:id', (req, res) => {
+  const { id } = req.params;
+  if (!/^\d+_[0-9a-f]{32}$/.test(id)) return res.status(400).json({ error: 'invalid id' });
+
+  const removed = manifest.removeById(id);
+  if (!removed) return res.status(404).json({ error: 'not found' });
+
+  const ext = (removed.url || '').split('.').pop();
+  const candidates = [paths.gridPath(id), paths.posterPath(id), paths.videoPath(id)];
+  if (ext) candidates.push(paths.originalPath(id, ext));
+  candidates.forEach((p) => { try { fs.unlinkSync(p); } catch {} });
+
+  res.json({ id, status: 'deleted' });
+});
+
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   if (err && err.code === 'LIMIT_FILE_SIZE') {
