@@ -92,13 +92,13 @@
   .preview-strip {
     display: flex;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.55rem;
     margin: -0.8rem 0 1.8rem;
   }
   .preview-strip a {
     display: block;
-    width: 46px; height: 46px;
-    border-radius: 11px;
+    width: 84px; height: 84px;
+    border-radius: 16px;
     overflow: hidden;
     border: 1px solid rgba(180, 134, 76, 0.3);
     box-shadow: 0 6px 14px rgba(31, 51, 71, 0.14);
@@ -157,7 +157,7 @@
     <img class="header-mono" src="img/monogram.png" alt="Monograma Daniel &amp; Irene">
     <p class="eyebrow">Daniel &amp; Irene · 24 Oct 2026</p>
     <h1>Comparte el Momento</h1>
-    <p class="subtitle"><span class="live-dot" id="live-dot" hidden aria-hidden="true"></span><span id="subtitle-text">Comparte con nosotros tus fotos y vídeos del gran día.</span></p>
+    <p class="subtitle"><span class="live-dot" id="live-dot" hidden aria-hidden="true"></span><span id="subtitle-text">Comparte con nosotros las fotos y vídeos que vayáis haciendo durante el gran día.</span></p>
     <div class="preview-strip" id="preview-strip" hidden></div>
     <button class="btn-line" id="upload-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> <span id="upload-btn-label">Subir Fotos y Vídeos</span></button>
     <input type="file" id="upload-input" multiple accept="image/*,video/*" style="display:none">
@@ -181,6 +181,7 @@
       backLink.href = 'galeria.html';
       backLink.textContent = 'Ver galería en vivo →';
       document.getElementById('live-dot').hidden = false;
+      document.getElementById('subtitle-text').textContent = '¡Hoy toca compartir! Sube tus fotos y vídeos del día.';
 
       // El id de cada archivo lleva su timestamp de subida como prefijo
       // ({timestampMs}_{hex}) — mismo criterio de orden que js/gallery.js.
@@ -196,7 +197,7 @@
           const photoCount = items.filter((i) => i.mimeType && i.mimeType.startsWith('image/')).length;
           const videoCount = items.filter((i) => i.mimeType && i.mimeType.startsWith('video/')).length;
           document.getElementById('subtitle-text').textContent =
-            `${photoCount} foto(s) y ${videoCount} vídeo(s) compartidos hasta ahora`;
+            `¡Ya van ${photoCount} foto(s) y ${videoCount} vídeo(s) compartidos! Súmate con los tuyos.`;
 
           const recent = items.slice().sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id)).slice(0, 4);
           const strip = document.getElementById('preview-strip');
