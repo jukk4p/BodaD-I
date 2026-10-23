@@ -487,12 +487,15 @@
   .btn-line.is-uploading { cursor: wait; }
   .btn-line.is-uploading svg { animation: upload-spin 0.8s linear infinite; }
   @keyframes upload-spin { to { transform: rotate(360deg); } }
-  .today-cta-row {
-    display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 0.5rem 1.6rem;
-    margin-top: 1.9rem;
+  .today-directions {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    margin-top: 1.5rem;
+    font-size: 0.72rem; letter-spacing: 0.04em;
+    color: var(--gold-text);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
   }
-  .today-cta-row .btn-line { margin-top: 0; }
+  .today-directions:hover { border-color: var(--gold-text); }
 
   /* ── DETAILS (El Gran Día) ────────────────────────── */
   .details {
@@ -772,11 +775,34 @@
         <div class="cd-box"><span class="cd-val" id="cd-secs">0</span><span class="cd-lbl">Seg</span></div>
       </div>
       <button class="btn-line" id="ics-btn" onclick="downloadICS()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Añadir a mi calendario</button>
-      <p class="section-body" id="today-banner-text" hidden>¡Hoy es el día! Mientras disfrutáis, nos encantaría ver la boda también a través de vuestros ojos.</p>
-      <div class="today-cta-row" id="today-cta-row" hidden>
-        <a class="btn-line" href="subir.html"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> Subir Fotos y Vídeos</a>
-        <a class="btn-line" href="galeria.html"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 14l4.5-4.5a2 2 0 0 1 2.8 0L15 14"/><circle cx="9" cy="9" r="1.2"/></svg> Ver Galería en Vivo</a>
+    </div>
+  </div>
+
+  <!-- HOY (día de la boda): fusiona cuenta atrás + localización en una
+       única sección visual. Oculta por defecto; sustituye a #cuenta-atras
+       y #gran-dia cuando empieza el día. -->
+  <div class="section-wrap reveal" id="hoy-section" hidden>
+    <div class="card-premium">
+      <img class="card-floral tl" src="img/floral-border.jpg" alt="" aria-hidden="true">
+      <img class="card-floral br" src="img/floral-border-mirrored.jpg" alt="" aria-hidden="true">
+      <div class="section-header">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+        <p class="section-tag">¡Hoy Celebramos!</p>
+        <h2 class="section-title">Nuestra Boda</h2>
+        <div class="divider-gold"><span class="line"></span><span class="icon">✦</span><span class="line"></span></div>
       </div>
+      <p class="section-body">El gran día ha llegado. Compartid con nosotros cada momento — nos encantaría vivirlo también a través de vuestros ojos.</p>
+      <div class="wa-list" style="margin-top: 1.8rem;">
+        <a class="wa-row" href="subir.html">
+          <div class="wa-icon-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg></div>
+          <span class="wa-name">Subir Fotos y Vídeos</span><span class="wa-arrow">→</span>
+        </a>
+        <a class="wa-row" href="galeria.html">
+          <div class="wa-icon-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 14l4.5-4.5a2 2 0 0 1 2.8 0L15 14"/><circle cx="9" cy="9" r="1.2"/></svg></div>
+          <span class="wa-name">Ver Galería en Vivo</span><span class="wa-arrow">→</span>
+        </a>
+      </div>
+      <a class="today-directions" href="https://maps.google.com/?q=Hacienda+Domitila+La+Puebla+del+R%C3%ADo+Sevilla" target="_blank"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg> Cómo llegar · Hacienda Domitila</a>
     </div>
   </div>
 
@@ -1163,12 +1189,12 @@
       if (navLink) navLink.closest('li').hidden = true;
     });
 
-    document.getElementById('cuenta-atras-tag').textContent = '¡Hoy Celebramos!';
-    document.getElementById('cuenta-atras-title').textContent = 'Nuestro Gran Día Ha Llegado';
-    document.getElementById('countdown-row').hidden = true;
-    document.getElementById('ics-btn').hidden = true;
-    document.getElementById('today-banner-text').hidden = false;
-    document.getElementById('today-cta-row').hidden = false;
+    // La cuenta atrás y "El Gran Día" se fusionan en #hoy-section: una
+    // única tarjeta más visual (fotos + acciones) en vez de dos tarjetas
+    // con información que ya no aporta (fecha/hora de algo que ya empezó).
+    document.getElementById('cuenta-atras').hidden = true;
+    document.getElementById('gran-dia').hidden = true;
+    document.getElementById('hoy-section').hidden = false;
 
     // ── CRONOGRAMA EN VIVO ──────────────────────────────
     // Solo tiene sentido mostrarlo el día de la boda — evita marcar
@@ -1176,27 +1202,31 @@
     (function () {
       const rows = Array.from(document.querySelectorAll('.schedule-row[data-time]'));
       if (!rows.length) return;
+      // No prometemos una hora exacta (la boda puede irse adelantando o
+      // atrasando) — "A continuación" solo aparece en los últimos 15 min
+      // antes de que empiece ese bloque, nunca con cuenta atrás en horas.
+      const UPCOMING_WINDOW_MS = 15 * 60000;
       function updateSchedule() {
         const now = Date.now();
         const times = rows.map((row) => new Date(row.dataset.time).getTime());
+        const nowIndex = times.findIndex((t, i) => now >= t && now < (times[i + 1] ?? Infinity));
+        // Mientras un evento está en curso, el siguiente puede marcarse "A
+        // continuación" en paralelo — no solo en el hueco antes del primero.
+        const nextIndex = nowIndex !== -1 ? nowIndex + 1 : times.findIndex((t) => t > now);
+        const showNext = nextIndex !== -1 && nextIndex < rows.length && (times[nextIndex] - now) <= UPCOMING_WINDOW_MS;
         rows.forEach((row, i) => {
-          const isNow = now >= times[i] && now < (times[i + 1] ?? Infinity);
-          row.classList.toggle('is-now', isNow);
+          row.classList.toggle('is-now', i === nowIndex);
           const tag = row.querySelector('.schedule-live-tag');
           const label = row.querySelector('.tag-label');
-          if (tag && label) {
-            tag.hidden = !isNow;
-            if (isNow) label.textContent = 'En curso';
+          if (!tag || !label) return;
+          if (i === nowIndex) {
+            tag.hidden = false; label.textContent = 'En curso';
+          } else if (showNext && i === nextIndex) {
+            tag.hidden = false; label.textContent = 'A continuación';
+          } else {
+            tag.hidden = true;
           }
         });
-        if (!rows.some((row) => row.classList.contains('is-now'))) {
-          const nextIndex = times.findIndex((t) => t > now);
-          if (nextIndex !== -1) {
-            const tag = rows[nextIndex].querySelector('.schedule-live-tag');
-            const label = rows[nextIndex].querySelector('.tag-label');
-            if (tag && label) { tag.hidden = false; label.textContent = 'A continuación'; }
-          }
-        }
       }
       updateSchedule();
       setInterval(updateSchedule, 30000);
