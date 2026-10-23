@@ -24,7 +24,9 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Archivo', sans-serif;
-    background: var(--page);
+    background:
+      radial-gradient(ellipse 70% 40% at 50% 0%, rgba(180, 134, 76, 0.10) 0%, transparent 60%),
+      var(--page);
     color: var(--charcoal);
     min-height: 100vh;
     display: flex;
@@ -34,6 +36,8 @@
     -webkit-font-smoothing: antialiased;
   }
   .card {
+    position: relative;
+    overflow: hidden;
     max-width: 420px;
     width: 100%;
     background: var(--paper);
@@ -43,6 +47,21 @@
     padding: 2.6rem 1.8rem;
     text-align: center;
   }
+  .header-mono {
+    width: 52px; height: 52px;
+    object-fit: cover; border-radius: 50%;
+    margin: 0 auto 0.9rem;
+    box-shadow: 0 6px 16px rgba(31,51,71,0.2), 0 0 0 1px rgba(180,134,76,0.35);
+  }
+  .eyebrow {
+    font-size: 0.66rem; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold-text);
+    margin-bottom: 0.6rem;
+  }
+  .lock-corner { position: absolute; width: 58px; height: 58px; object-fit: cover; opacity: 0.9; }
+  .lock-corner-tl { top: 0; left: 0; border-radius: 0 0 16px 0; }
+  .lock-corner-br { bottom: 0; right: 0; border-radius: 16px 0 0 0; }
   h1 {
     font-family: 'Fraunces', serif;
     font-weight: 500;
@@ -56,6 +75,41 @@
     color: var(--muted);
     line-height: 1.6;
     margin-bottom: 1.9rem;
+  }
+  .subtitle {
+    display: flex; align-items: center; justify-content: center; gap: 0.45rem;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gold); flex: none;
+    animation: livePulse 2.2s ease-out infinite;
+  }
+  @keyframes livePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(180, 134, 76, 0.55); }
+    70%  { box-shadow: 0 0 0 6px rgba(180, 134, 76, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(180, 134, 76, 0); }
+  }
+  .preview-strip {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: -0.8rem 0 1.8rem;
+  }
+  .preview-strip a {
+    display: block;
+    width: 46px; height: 46px;
+    border-radius: 11px;
+    overflow: hidden;
+    border: 1px solid rgba(180, 134, 76, 0.3);
+    box-shadow: 0 6px 14px rgba(31, 51, 71, 0.14);
+  }
+  .preview-strip img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live-dot { animation: none !important; }
   }
   .btn-line {
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -98,9 +152,13 @@
 </head>
 <body>
   <div class="card">
-    <h1>Daniel &amp; Irene</h1>
-    <p>Comparte con nosotros tus fotos y vídeos del gran día.</p>
-    <p class="live-counter" id="live-counter" hidden></p>
+    <img class="lock-corner lock-corner-tl" src="img/floral-tr-crop.jpg" alt="" aria-hidden="true">
+    <img class="lock-corner lock-corner-br" src="img/floral-bl-crop.jpg" alt="" aria-hidden="true">
+    <img class="header-mono" src="img/monogram.png" alt="Monograma Daniel &amp; Irene">
+    <p class="eyebrow">Daniel &amp; Irene · 24 Oct 2026</p>
+    <h1>Comparte el Momento</h1>
+    <p class="subtitle"><span class="live-dot" id="live-dot" hidden aria-hidden="true"></span><span id="subtitle-text">Comparte con nosotros tus fotos y vídeos del gran día.</span></p>
+    <div class="preview-strip" id="preview-strip" hidden></div>
     <button class="btn-line" id="upload-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg> <span id="upload-btn-label">Subir Fotos y Vídeos</span></button>
     <input type="file" id="upload-input" multiple accept="image/*,video/*" style="display:none">
     <br>
@@ -122,6 +180,14 @@
       const backLink = document.getElementById('back-link');
       backLink.href = 'galeria.html';
       backLink.textContent = 'Ver galería en vivo →';
+      document.getElementById('live-dot').hidden = false;
+
+      // El id de cada archivo lleva su timestamp de subida como prefijo
+      // ({timestampMs}_{hex}) — mismo criterio de orden que js/gallery.js.
+      const uploadTimestamp = (id) => {
+        const match = /^(\d+)_/.exec(id || '');
+        return match ? parseInt(match[1], 10) : 0;
+      };
 
       fetch(GALLERY_WEBHOOK_URL, { signal: AbortSignal.timeout(8000) })
         .then((res) => res.ok ? res.json() : Promise.reject())
@@ -129,9 +195,24 @@
           if (!Array.isArray(items) || items.length === 0) return;
           const photoCount = items.filter((i) => i.mimeType && i.mimeType.startsWith('image/')).length;
           const videoCount = items.filter((i) => i.mimeType && i.mimeType.startsWith('video/')).length;
-          const counter = document.getElementById('live-counter');
-          counter.textContent = `${photoCount} foto(s) y ${videoCount} vídeo(s) compartidos hasta ahora`;
-          counter.hidden = false;
+          document.getElementById('subtitle-text').textContent =
+            `${photoCount} foto(s) y ${videoCount} vídeo(s) compartidos hasta ahora`;
+
+          const recent = items.slice().sort((a, b) => uploadTimestamp(b.id) - uploadTimestamp(a.id)).slice(0, 4);
+          const strip = document.getElementById('preview-strip');
+          recent.forEach((item) => {
+            const thumbUrl = item.mimeType && item.mimeType.startsWith('video/') ? item.posterUrl : item.gridUrl;
+            if (!thumbUrl) return;
+            const link = document.createElement('a');
+            link.href = 'galeria.html';
+            const img = document.createElement('img');
+            img.src = thumbUrl;
+            img.alt = '';
+            img.loading = 'lazy';
+            link.appendChild(img);
+            strip.appendChild(link);
+          });
+          if (strip.children.length > 0) strip.hidden = false;
         })
         .catch(() => {});
     }
