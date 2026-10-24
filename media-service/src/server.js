@@ -32,7 +32,7 @@ const upload = multer({
       cb(null, `${id}.${ext}`);
     }
   }),
-  limits: { fileSize: 50 * 1024 * 1024 }
+  limits: { fileSize: 500 * 1024 * 1024 }
 });
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || 'https://bodadaniyirene.ivangonzalez.cloud/uploads';
 
@@ -124,7 +124,7 @@ app.delete('/items/:id', (req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   if (err && err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(413).json({ error: 'file too large (max 50MB)' });
+    return res.status(413).json({ error: 'file too large (max 500MB)' });
   }
   console.error('unhandled error:', err);
   res.status(500).json({ error: 'internal server error' });

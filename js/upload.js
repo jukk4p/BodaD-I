@@ -2,7 +2,7 @@
 // Usada por index.html (sección #recuerdos) y subir.html (QR).
 
 const WEBHOOK_URL = 'https://n8n.ivangonzalez.cloud/webhook/boda-daniel-irene-fotos';
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;
 const ALLOWED_TYPE_PREFIXES = ['image/', 'video/'];
 
 function initUploadFlow({ buttonId, inputId, labelId, isActive, lockedMessage }) {
@@ -51,7 +51,7 @@ function initUploadFlow({ buttonId, inputId, labelId, isActive, lockedMessage })
         try {
           const formData = new FormData();
           formData.append('data', file, file.name);
-          const res = await fetch(WEBHOOK_URL, { method: 'POST', body: formData, signal: AbortSignal.timeout(120000) });
+          const res = await fetch(WEBHOOK_URL, { method: 'POST', body: formData, signal: AbortSignal.timeout(900000) });
           if (res.ok) { okCount++; } else { failCount++; }
         } catch (err) {
           failCount++;
